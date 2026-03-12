@@ -1,8 +1,8 @@
-A ridership overlay is a way to combine two different datasets on the same map:
+The goal is to A ridership overlay is a way to combine two different datasets on the same map:
 1️⃣ Transit performance (speed, delay, reliability)
 2️⃣ Ridership demand (how many people actually use each route)
 
-## TODO
+## Planned Enhancements
 1. Ridership Map: ridership overlay of cta bus routes
 2. Speed Ridership Overlay
 - by segment (identify slow corridors)
@@ -19,3 +19,11 @@ Scheduled vs actual frequency
 corridor congestion analysis
 bus lane impact simulation
 ridership vs speed visualizations
+
+## Ridership Map
+
+- [ ] Render 1 bus route
+  - [ ] Import Ridership Data
+  - [ ] Get route info from the cta bus tracker api
+  - [ ] Merge into hardcoded geojson served on frontend
+- [ ] Render all bus routes
