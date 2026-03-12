@@ -4,10 +4,11 @@ import type { LayerProps } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { fakeRoutes } from '../data/routes'
 
-// OpenFreeMap provides a free, open-source MapLibre-compatible tile style
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
+// Positron is a minimal, light basemap — keeps focus on transit lines
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron'
 
 const CHICAGO_CENTER = { longitude: -87.6298, latitude: 41.8781 }
+const MAX_ZOOM = 15
 
 const routeLineLayer: LayerProps = {
   id: 'bus-routes',
@@ -35,6 +36,7 @@ const RouteMap = () => {
       }}
       style={{ width: '100%', height: '100%' }}
       mapStyle={MAP_STYLE}
+      maxZoom={MAX_ZOOM}
       onLoad={onMapLoad}
     >
       <Source id="bus-routes" type="geojson" data={fakeRoutes}>
