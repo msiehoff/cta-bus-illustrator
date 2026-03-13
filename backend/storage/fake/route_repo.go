@@ -29,28 +29,5 @@ func (r *RouteRepo) GetRoutes() ([]business.Route, error) {
 				{Lng: -87.5769, Lat: 41.8983}, // McClurg & Chicago (Navy Pier turn)
 			},
 		},
-		{
-			ExternalID: "66",
-			Name:       "Chicago",
-			Color:      "#E63946",
-			Ridership:  15000,
-			Segments: []business.RouteSegment{
-				{Lng: -87.8065, Lat: 41.95425369582809}, // Austin & Chicago
-				{Lng: -87.7754, Lat: 41.95425369582809}, // Central & Chicago
-				{Lng: -87.7523, Lat: 41.95425369582809}, // Laramie & Chicago
-				{Lng: -87.7341, Lat: 41.95425369582809}, // Cicero & Chicago
-				{Lng: -87.7137, Lat: 41.95425369582809}, // Pulaski & Chicago
-				{Lng: -87.6948, Lat: 41.95425369582809}, // Kedzie & Chicago
-				{Lng: -87.6726, Lat: 41.95425369582809}, // Western & Chicago
-				{Lng: -87.6558, Lat: 41.95425369582809}, // Damen & Chicago
-				{Lng: -87.6418, Lat: 41.95425369582809}, // Ashland & Chicago
-				{Lng: -87.6264, Lat: 41.95425369582809}, // Halsted & Chicago
-				{Lng: -87.6134, Lat: 41.95425369582809}, // Morgan & Chicago
-				{Lng: -87.6062, Lat: 41.95425369582809}, // Peoria & Chicago
-				{Lng: -87.5961, Lat: 41.95425369582809}, // State & Chicago
-				{Lng: -87.5854, Lat: 41.95425369582809}, //
-				{Lng: -87.5769, Lat: 41.95425369582809}, // McClurg & Chicago (Navy Pier turn)
-			},
-		},
 	}, nil
 }
