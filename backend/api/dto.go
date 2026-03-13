@@ -31,7 +31,7 @@ func toGetRoutesResponse(routes []business.Route) GetRoutesResponse {
 		features[i] = routeFeature{
 			Type: "Feature",
 			Properties: routeProperties{
-				RouteID:   r.ID,
+				RouteID:   r.ExternalID,
 				RouteName: r.Name,
 				Color:     r.Color,
 				Ridership: r.Ridership,

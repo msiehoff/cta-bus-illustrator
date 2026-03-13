@@ -7,10 +7,10 @@ type RouteRepo struct{}
 func (r *RouteRepo) GetRoutes() ([]business.Route, error) {
 	return []business.Route{
 		{
-			ID:        "66",
-			Name:      "Chicago",
-			Color:     "#E63946",
-			Ridership: 8500,
+			ExternalID: "66",
+			Name:       "Chicago",
+			Color:      "#E63946",
+			Ridership:  8500,
 			Coordinates: [][2]float64{
 				{-87.8065, 41.8957}, // Austin & Chicago
 				{-87.7754, 41.8957}, // Central & Chicago
@@ -30,10 +30,10 @@ func (r *RouteRepo) GetRoutes() ([]business.Route, error) {
 			},
 		},
 		{
-			ID:        "66",
-			Name:      "Chicago",
-			Color:     "#E63946",
-			Ridership: 15000,
+			ExternalID: "66",
+			Name:       "Chicago",
+			Color:      "#E63946",
+			Ridership:  15000,
 			Coordinates: [][2]float64{
 				{-87.8065, 41.95425369582809}, // Austin & Chicago
 				{-87.7754, 41.95425369582809}, // Central & Chicago
