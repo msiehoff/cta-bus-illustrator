@@ -1,5 +1,10 @@
 .PHONY: serve build tidy
 
+ifneq (,$(wildcard .env))
+  include .env
+  export
+endif
+
 serve:
 	air
 
