@@ -19,5 +19,10 @@ func (a *API) handleHealth(c *gin.Context) {
 }
 
 func (a *API) handleGetRoutes(c *gin.Context) {
-	c.JSON(http.StatusOK, fakeRoutes)
+	routes, err := a.routeService.GetRoutes()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, toGetRoutesResponse(routes))
 }

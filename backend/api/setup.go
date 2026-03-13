@@ -2,15 +2,18 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/msiehoff/cta-bus-illustrator/backend/app"
 )
 
 type API struct {
-	router *gin.Engine
+	router       *gin.Engine
+	routeService *app.RouteService
 }
 
-func New() *API {
+func New(routeService *app.RouteService) *API {
 	a := &API{
-		router: gin.Default(),
+		router:       gin.Default(),
+		routeService: routeService,
 	}
 	a.registerRoutes()
 	return a

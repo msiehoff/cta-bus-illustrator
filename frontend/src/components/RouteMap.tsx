@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react'
 import Map, { Layer, Source, type MapRef } from 'react-map-gl/maplibre'
 import type { LayerProps } from 'react-map-gl/maplibre'
-import type { FeatureCollection } from 'geojson'
+import type { GetRoutesResponse } from '../types/api'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 // Positron is a minimal, light basemap — keeps focus on transit lines
@@ -31,12 +31,12 @@ const routeLineLayer: LayerProps = {
 
 const RouteMap = () => {
   const mapRef = useRef<MapRef>(null)
-  const [routes, setRoutes] = useState<FeatureCollection | null>(null)
+  const [routes, setRoutes] = useState<GetRoutesResponse | null>(null)
 
   useEffect(() => {
     const fetchRoutes = async () => {
       const res = await fetch('/api/v1/routes')
-      const data: FeatureCollection = await res.json()
+      const data: GetRoutesResponse = await res.json()
       setRoutes(data)
     }
     fetchRoutes()
