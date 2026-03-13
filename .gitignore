@@ -33,6 +33,7 @@ go.work.sum
 
 # Backend (Go / air)
 backend/tmp/
+backend/.env
 
 # Frontend (Node / Vite)
 frontend/node_modules/
