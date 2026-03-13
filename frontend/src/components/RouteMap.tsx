@@ -1,8 +1,8 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect, useState } from 'react'
 import Map, { Layer, Source, type MapRef } from 'react-map-gl/maplibre'
 import type { LayerProps } from 'react-map-gl/maplibre'
+import type { GetRoutesResponse } from '../types/api'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { fakeRoutes } from '../data/routes'
 
 // Positron is a minimal, light basemap — keeps focus on transit lines
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron'
@@ -15,13 +15,32 @@ const routeLineLayer: LayerProps = {
   type: 'line',
   paint: {
     'line-color': ['get', 'color'],
-    'line-width': 4,
+    // Interpolate ridership (riders/day) linearly to a line width in pixels.
+    // Routes with 0 riders render at 1px; routes with 20k+ riders render at 12px.
+    'line-width': [
+      'interpolate', ['linear'],
+      ['get', 'ridership'],
+      0,     1,
+      5000,  4,
+      10000, 7,
+      20000, 12,
+    ],
     'line-opacity': 0.9,
   },
 }
 
 const RouteMap = () => {
   const mapRef = useRef<MapRef>(null)
+  const [routes, setRoutes] = useState<GetRoutesResponse | null>(null)
+
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      const res = await fetch('/api/v1/routes')
+      const data: GetRoutesResponse = await res.json()
+      setRoutes(data)
+    }
+    fetchRoutes()
+  }, [])
 
   const onMapLoad = useCallback(() => {
     mapRef.current?.resize()
@@ -39,9 +58,11 @@ const RouteMap = () => {
       maxZoom={MAX_ZOOM}
       onLoad={onMapLoad}
     >
-      <Source id="bus-routes" type="geojson" data={fakeRoutes}>
-        <Layer {...routeLineLayer} />
-      </Source>
+      {routes && (
+        <Source id="bus-routes" type="geojson" data={routes}>
+          <Layer {...routeLineLayer} />
+        </Source>
+      )}
     </Map>
   )
 }
