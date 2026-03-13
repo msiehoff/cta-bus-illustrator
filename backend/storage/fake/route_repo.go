@@ -11,22 +11,22 @@ func (r *RouteRepo) GetRoutes() ([]business.Route, error) {
 			Name:       "Chicago",
 			Color:      "#E63946",
 			Ridership:  8500,
-			Coordinates: [][2]float64{
-				{-87.8065, 41.8957}, // Austin & Chicago
-				{-87.7754, 41.8957}, // Central & Chicago
-				{-87.7523, 41.8957}, // Laramie & Chicago
-				{-87.7341, 41.8957}, // Cicero & Chicago
-				{-87.7137, 41.8957}, // Pulaski & Chicago
-				{-87.6948, 41.8957}, // Kedzie & Chicago
-				{-87.6726, 41.8957}, // Western & Chicago
-				{-87.6558, 41.8957}, // Damen & Chicago
-				{-87.6418, 41.8957}, // Ashland & Chicago
-				{-87.6264, 41.8957}, // Halsted & Chicago
-				{-87.6134, 41.8957}, // Morgan & Chicago
-				{-87.6062, 41.8957}, // Peoria & Chicago
-				{-87.5961, 41.8966}, // State & Chicago
-				{-87.5854, 41.8978}, // Michigan & Chicago
-				{-87.5769, 41.8983}, // McClurg & Chicago (Navy Pier turn)
+			Segments: []business.RouteSegment{
+				{Lng: -87.8065, Lat: 41.8957}, // Austin & Chicago
+				{Lng: -87.7754, Lat: 41.8957}, // Central & Chicago
+				{Lng: -87.7523, Lat: 41.8957}, // Laramie & Chicago
+				{Lng: -87.7341, Lat: 41.8957}, // Cicero & Chicago
+				{Lng: -87.7137, Lat: 41.8957}, // Pulaski & Chicago
+				{Lng: -87.6948, Lat: 41.8957}, // Kedzie & Chicago
+				{Lng: -87.6726, Lat: 41.8957}, // Western & Chicago
+				{Lng: -87.6558, Lat: 41.8957}, // Damen & Chicago
+				{Lng: -87.6418, Lat: 41.8957}, // Ashland & Chicago
+				{Lng: -87.6264, Lat: 41.8957}, // Halsted & Chicago
+				{Lng: -87.6134, Lat: 41.8957}, // Morgan & Chicago
+				{Lng: -87.6062, Lat: 41.8957}, // Peoria & Chicago
+				{Lng: -87.5961, Lat: 41.8966}, // State & Chicago
+				{Lng: -87.5854, Lat: 41.8978}, // Michigan & Chicago
+				{Lng: -87.5769, Lat: 41.8983}, // McClurg & Chicago (Navy Pier turn)
 			},
 		},
 		{
@@ -34,22 +34,22 @@ func (r *RouteRepo) GetRoutes() ([]business.Route, error) {
 			Name:       "Chicago",
 			Color:      "#E63946",
 			Ridership:  15000,
-			Coordinates: [][2]float64{
-				{-87.8065, 41.95425369582809}, // Austin & Chicago
-				{-87.7754, 41.95425369582809}, // Central & Chicago
-				{-87.7523, 41.95425369582809}, // Laramie & Chicago
-				{-87.7341, 41.95425369582809}, // Cicero & Chicago
-				{-87.7137, 41.95425369582809}, // Pulaski & Chicago
-				{-87.6948, 41.95425369582809}, // Kedzie & Chicago
-				{-87.6726, 41.95425369582809}, // Western & Chicago
-				{-87.6558, 41.95425369582809}, // Damen & Chicago
-				{-87.6418, 41.95425369582809}, // Ashland & Chicago
-				{-87.6264, 41.95425369582809}, // Halsted & Chicago
-				{-87.6134, 41.95425369582809}, // Morgan & Chicago
-				{-87.6062, 41.95425369582809}, // Peoria & Chicago
-				{-87.5961, 41.95425369582809}, // State & Chicago
-				{-87.5854, 41.95425369582809}, // Michigan & Chicago
-				{-87.5769, 41.95425369582809}, // McClurg & Chicago (Navy Pier turn)
+			Segments: []business.RouteSegment{
+				{Lng: -87.8065, Lat: 41.95425369582809}, // Austin & Chicago
+				{Lng: -87.7754, Lat: 41.95425369582809}, // Central & Chicago
+				{Lng: -87.7523, Lat: 41.95425369582809}, // Laramie & Chicago
+				{Lng: -87.7341, Lat: 41.95425369582809}, // Cicero & Chicago
+				{Lng: -87.7137, Lat: 41.95425369582809}, // Pulaski & Chicago
+				{Lng: -87.6948, Lat: 41.95425369582809}, // Kedzie & Chicago
+				{Lng: -87.6726, Lat: 41.95425369582809}, // Western & Chicago
+				{Lng: -87.6558, Lat: 41.95425369582809}, // Damen & Chicago
+				{Lng: -87.6418, Lat: 41.95425369582809}, // Ashland & Chicago
+				{Lng: -87.6264, Lat: 41.95425369582809}, // Halsted & Chicago
+				{Lng: -87.6134, Lat: 41.95425369582809}, // Morgan & Chicago
+				{Lng: -87.6062, Lat: 41.95425369582809}, // Peoria & Chicago
+				{Lng: -87.5961, Lat: 41.95425369582809}, // State & Chicago
+				{Lng: -87.5854, Lat: 41.95425369582809}, //
+				{Lng: -87.5769, Lat: 41.95425369582809}, // McClurg & Chicago (Navy Pier turn)
 			},
 		},
 	}, nil

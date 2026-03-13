@@ -28,6 +28,10 @@ type GetRoutesResponse struct {
 func toGetRoutesResponse(routes []business.Route) GetRoutesResponse {
 	features := make([]routeFeature, len(routes))
 	for i, r := range routes {
+		coordinates := make([][2]float64, len(r.Segments))
+		for j, s := range r.Segments {
+			coordinates[j] = [2]float64{s.Lng, s.Lat}
+		}
 		features[i] = routeFeature{
 			Type: "Feature",
 			Properties: routeProperties{
@@ -38,7 +42,7 @@ func toGetRoutesResponse(routes []business.Route) GetRoutesResponse {
 			},
 			Geometry: routeGeometry{
 				Type:        "LineString",
-				Coordinates: r.Coordinates,
+				Coordinates: coordinates,
 			},
 		}
 	}
