@@ -15,7 +15,16 @@ const routeLineLayer: LayerProps = {
   type: 'line',
   paint: {
     'line-color': ['get', 'color'],
-    'line-width': 4,
+    // Interpolate ridership (riders/day) linearly to a line width in pixels.
+    // Routes with 0 riders render at 1px; routes with 20k+ riders render at 12px.
+    'line-width': [
+      'interpolate', ['linear'],
+      ['get', 'ridership'],
+      0,     1,
+      5000,  4,
+      10000, 7,
+      20000, 12,
+    ],
     'line-opacity': 0.9,
   },
 }
