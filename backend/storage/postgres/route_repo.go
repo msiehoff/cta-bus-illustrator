@@ -38,3 +38,36 @@ func (r *RouteRepo) GetRoutes() ([]business.Route, error) {
 	}
 	return routes, nil
 }
+
+func (r *RouteRepo) GetRoute(id string) (business.Route, error) {
+	var model routeModel
+	if err := r.db.Where("external_id = ?", id).First(&model).Error; err != nil {
+		return business.Route{}, err
+	}
+	return business.Route{
+		ExternalID: model.ExternalID,
+		Name:       model.Name,
+	}, nil
+}
+
+func (r *RouteRepo) CreateSegments(routeID string, segments []business.RouteSegment) error {
+	tx := r.db.Begin()
+
+	var model routeModel
+	if err := tx.Where("external_id = ?", routeID).First(&model).Error; err != nil {
+		return err
+	}
+	for _, segment := range segments {
+		if err := tx.Create(&routeSegmentModel{
+			RouteID:  model.ID,
+			Sequence: segment.Sequence,
+			Lat:      segment.Lat,
+			Lng:      segment.Lng,
+		}).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit().Error
+}

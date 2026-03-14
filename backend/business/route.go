@@ -10,6 +10,7 @@ type Route struct {
 }
 
 type RouteSegment struct {
-	Lat float64
-	Lng float64
+	Sequence int
+	Lat      float64
+	Lng      float64
 }
