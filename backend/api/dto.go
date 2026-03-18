@@ -1,12 +1,11 @@
 package api
 
-import "github.com/msiehoff/cta-bus-illustrator/backend/business"
+import "github.com/msiehoff/cta-bus-illustrator/backend/app"
 
 type routeProperties struct {
-	RouteID   string `json:"routeId"`
-	RouteName string `json:"routeName"`
-	Color     string `json:"color"`
-	Ridership int    `json:"ridership"`
+	RouteID   string   `json:"routeId"`
+	RouteName string   `json:"routeName"`
+	AvgRides  *float64 `json:"avgRides,omitempty"`
 }
 
 type routeGeometry struct {
@@ -25,21 +24,26 @@ type GetRoutesResponse struct {
 	Features []routeFeature `json:"features"`
 }
 
-func toGetRoutesResponse(routes []business.Route) GetRoutesResponse {
+func toGetRoutesResponse(routes []app.RouteWithRidership) GetRoutesResponse {
 	features := make([]routeFeature, len(routes))
-	for i, r := range routes {
+	for i, rwr := range routes {
+		r := rwr.Route
 		coordinates := make([][2]float64, len(r.Segments))
 		for j, s := range r.Segments {
 			coordinates[j] = [2]float64{s.Lng, s.Lat}
 		}
+
+		props := routeProperties{
+			RouteID:   r.ExternalID,
+			RouteName: r.Name,
+		}
+		if rwr.Ridership != nil {
+			props.AvgRides = &rwr.Ridership.AvgRides
+		}
+
 		features[i] = routeFeature{
-			Type: "Feature",
-			Properties: routeProperties{
-				RouteID:   r.ExternalID,
-				RouteName: r.Name,
-				Color:     r.Color,
-				Ridership: r.Ridership,
-			},
+			Type:       "Feature",
+			Properties: props,
 			Geometry: routeGeometry{
 				Type:        "LineString",
 				Coordinates: coordinates,

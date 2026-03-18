@@ -9,8 +9,6 @@ func (r *RouteRepo) GetRoutes() ([]business.Route, error) {
 		{
 			ExternalID: "66",
 			Name:       "Chicago",
-			Color:      "#E63946",
-			Ridership:  8500,
 			Segments: []business.RouteSegment{
 				{Lng: -87.8065, Lat: 41.8957}, // Austin & Chicago
 				{Lng: -87.7754, Lat: 41.8957}, // Central & Chicago
@@ -36,8 +34,6 @@ func (r *RouteRepo) GetRoute(id string) (business.Route, error) {
 	return business.Route{
 		ExternalID: id,
 		Name:       "Chicago",
-		Color:      "#E63946",
-		Ridership:  8500,
 	}, nil
 }
 
