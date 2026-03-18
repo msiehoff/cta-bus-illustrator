@@ -15,7 +15,7 @@ func NewClient(apiKey string) *Client {
 }
 
 func (c *Client) GetRoutePattern(routeID string) (*GetRoutePatternResponse, error) {
-	url := fmt.Sprintf("https://api.ctabustracker.com/bustime/api/v3/getpattern.php?key=%s&rt=%s", c.apiKey, routeID)
+	url := fmt.Sprintf("https://www.ctabustracker.com/bustime/api/v3/getpatterns?key=%s&format=json&rt=%s", c.apiKey, routeID)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err

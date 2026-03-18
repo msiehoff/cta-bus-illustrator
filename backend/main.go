@@ -7,6 +7,7 @@ import (
 	"github.com/msiehoff/cta-bus-illustrator/backend/api"
 	"github.com/msiehoff/cta-bus-illustrator/backend/app"
 	"github.com/msiehoff/cta-bus-illustrator/backend/migrations"
+	"github.com/msiehoff/cta-bus-illustrator/backend/storage/cta"
 	"github.com/msiehoff/cta-bus-illustrator/backend/storage/fake"
 	pgstore "github.com/msiehoff/cta-bus-illustrator/backend/storage/postgres"
 )
@@ -37,8 +38,11 @@ func main() {
 		routeRepo = &fake.RouteRepo{}
 	}
 
+	ctaAPIKey := os.Getenv("CTA_API_KEY")
+	ctaDataSrc := cta.NewRouteSegmentDataSource(cta.NewClient(ctaAPIKey))
+
 	routeService := app.NewRouteService(routeRepo)
-	a := api.New(routeService)
+	a := api.New(routeService, ctaDataSrc)
 	if err := a.Run(":8080"); err != nil {
 		log.Fatalf("server error: %v", err)
 	}

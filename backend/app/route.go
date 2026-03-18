@@ -29,7 +29,7 @@ func (s *RouteService) GetRoutes() ([]business.Route, error) {
 	return s.repo.GetRoutes()
 }
 
-func (s *RouteService) ImportRouteSegments(ctx context.Context, dataSrc RouteSegmentDataSource, routeID string) error {
+func (s *RouteService) ImportRouteSegments(ctx context.Context, dataSrc RouteSegmentDataSource) error {
 	routes, err := s.repo.GetRoutes()
 	if err != nil {
 		return err
