@@ -8,12 +8,14 @@ import (
 type API struct {
 	router       *gin.Engine
 	routeService *app.RouteService
+	ctaDataSrc   app.RouteSegmentDataSource
 }
 
-func New(routeService *app.RouteService) *API {
+func New(routeService *app.RouteService, ctaDataSrc app.RouteSegmentDataSource) *API {
 	a := &API{
 		router:       gin.Default(),
 		routeService: routeService,
+		ctaDataSrc:   ctaDataSrc,
 	}
 	a.registerRoutes()
 	return a

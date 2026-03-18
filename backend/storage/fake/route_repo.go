@@ -31,3 +31,16 @@ func (r *RouteRepo) GetRoutes() ([]business.Route, error) {
 		},
 	}, nil
 }
+
+func (r *RouteRepo) GetRoute(id string) (business.Route, error) {
+	return business.Route{
+		ExternalID: id,
+		Name:       "Chicago",
+		Color:      "#E63946",
+		Ridership:  8500,
+	}, nil
+}
+
+func (r *RouteRepo) CreateSegments(routeID string, segments []business.RouteSegment) error {
+	return nil
+}
