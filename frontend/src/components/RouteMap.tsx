@@ -10,22 +10,26 @@ const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron'
 const CHICAGO_CENTER = { longitude: -87.6298, latitude: 41.8781 }
 const MAX_ZOOM = 15
 
+// CTA blue used as a consistent route color — thickness carries the data story.
+const ROUTE_COLOR = '#009BDE'
+
 const routeLineLayer: LayerProps = {
   id: 'bus-routes',
   type: 'line',
   paint: {
-    'line-color': ['get', 'color'],
-    // Interpolate ridership (riders/day) linearly to a line width in pixels.
-    // Routes with 0 riders render at 1px; routes with 20k+ riders render at 12px.
+    'line-color': ROUTE_COLOR,
+    // Log-spaced stops across Chicago's ridership range (~100–30k riders/day).
+    // Coalesce to 0 so routes with no ridership data render at minimum width.
     'line-width': [
       'interpolate', ['linear'],
-      ['get', 'ridership'],
-      0,     1,
-      5000,  4,
-      10000, 7,
-      20000, 12,
+      ['coalesce', ['get', 'avgRides'], 0],
+        0,  1,
+     1000,  2,
+     5000,  4,
+    15000,  7,
+    30000, 10,
     ],
-    'line-opacity': 0.9,
+    'line-opacity': 0.85,
   },
 }
 

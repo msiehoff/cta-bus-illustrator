@@ -1,8 +1,7 @@
 export interface RouteProperties {
   routeId: string
   routeName: string
-  color: string
-  ridership: number
+  avgRides?: number
 }
 
 export interface RouteGeometry {
