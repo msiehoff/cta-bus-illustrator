@@ -2,6 +2,7 @@ import { useRef, useCallback, useEffect, useState } from 'react'
 import Map, { Layer, Source, type MapRef, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
 import type { LayerProps } from 'react-map-gl/maplibre'
 import type { GetRoutesResponse, RouteProperties, RidershipType } from '../types/api'
+import { ridershipColorExpression } from '../lib/ridershipColors'
 import RouteTooltip from './RouteTooltip'
 import FilterBar from './FilterBar'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -9,7 +10,6 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron'
 const CHICAGO_CENTER = { longitude: -87.6298, latitude: 41.8781 }
 const MAX_ZOOM = 15
-const ROUTE_COLOR = '#009BDE'
 
 // Maps each route id to its express/local counterpart.
 // Both directions are listed so a lookup always works regardless of which is hovered.
@@ -23,7 +23,8 @@ const routeLineLayer: LayerProps = {
   id: 'bus-routes',
   type: 'line',
   paint: {
-    'line-color': ROUTE_COLOR,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'line-color': ridershipColorExpression as any,
     'line-width': [
       'interpolate', ['linear'],
       ['coalesce', ['get', 'avgRides'], 0],
