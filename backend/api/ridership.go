@@ -12,6 +12,20 @@ import (
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
 )
 
+func (a *API) handleGetRidershipMonths(c *gin.Context) {
+	months, err := a.routeService.GetAvailableRidershipMonths()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	formatted := make([]string, len(months))
+	for i, m := range months {
+		formatted[i] = m.Format("2006-01")
+	}
+	c.JSON(http.StatusOK, gin.H{"months": formatted})
+}
+
 func (a *API) handleImportRidership(c *gin.Context) {
 	file, _, err := c.Request.FormFile("file")
 	if err != nil {

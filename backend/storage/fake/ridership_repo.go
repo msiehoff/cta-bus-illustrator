@@ -12,6 +12,10 @@ func (r *RidershipRepo) GetLatestMonth() (time.Time, error) {
 	return time.Date(2025, 11, 1, 0, 0, 0, 0, time.UTC), nil
 }
 
+func (r *RidershipRepo) GetAvailableMonths() ([]time.Time, error) {
+	return []time.Time{time.Date(2025, 11, 1, 0, 0, 0, 0, time.UTC)}, nil
+}
+
 func (r *RidershipRepo) UpsertBatch(_ []business.RidershipRecord) error {
 	return nil
 }

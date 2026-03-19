@@ -1,3 +1,5 @@
+export type RidershipType = 'weekday' | 'saturday' | 'sunday'
+
 export interface RouteProperties {
   routeId: string
   routeName: string

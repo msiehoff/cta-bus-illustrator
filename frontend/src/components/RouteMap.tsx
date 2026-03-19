@@ -1,8 +1,9 @@
 import { useRef, useCallback, useEffect, useState } from 'react'
 import Map, { Layer, Source, type MapRef, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
 import type { LayerProps } from 'react-map-gl/maplibre'
-import type { GetRoutesResponse, RouteProperties } from '../types/api'
+import type { GetRoutesResponse, RouteProperties, RidershipType } from '../types/api'
 import RouteTooltip from './RouteTooltip'
+import FilterBar from './FilterBar'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron'
@@ -63,14 +64,36 @@ const RouteMap = () => {
   const [routes, setRoutes] = useState<GetRoutesResponse | null>(null)
   const [hoveredRoute, setHoveredRoute] = useState<HoveredRoute | null>(null)
 
+  const [availableMonths, setAvailableMonths] = useState<string[]>([])
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
+  const [ridershipType, setRidershipType] = useState<RidershipType>('weekday')
+  const [monthsLoaded, setMonthsLoaded] = useState(false)
+
+  // Fetch available ridership months once on mount.
   useEffect(() => {
+    const fetchMonths = async () => {
+      const res = await fetch('/api/v1/ridership/months')
+      const data = await res.json()
+      const months: string[] = data.months ?? []
+      setAvailableMonths(months)
+      setSelectedMonth(months[0] ?? null)
+      setMonthsLoaded(true)
+    }
+    fetchMonths()
+  }, [])
+
+  // Re-fetch routes whenever the selected month or ridership type changes.
+  useEffect(() => {
+    if (!monthsLoaded) return
     const fetchRoutes = async () => {
-      const res = await fetch('/api/v1/routes')
+      const params = new URLSearchParams({ type: ridershipType })
+      if (selectedMonth) params.set('month', selectedMonth)
+      const res = await fetch(`/api/v1/routes?${params}`)
       const data: GetRoutesResponse = await res.json()
       setRoutes(data)
     }
     fetchRoutes()
-  }, [])
+  }, [monthsLoaded, selectedMonth, ridershipType])
 
   const onMapLoad = useCallback(() => {
     mapRef.current?.resize()
@@ -136,6 +159,14 @@ const RouteMap = () => {
           </Source>
         )}
       </Map>
+
+      <FilterBar
+        availableMonths={availableMonths}
+        selectedMonth={selectedMonth}
+        ridershipType={ridershipType}
+        onMonthChange={setSelectedMonth}
+        onTypeChange={setRidershipType}
+      />
 
       {hoveredRoute && <RouteTooltip data={hoveredRoute.data} x={hoveredRoute.x} y={hoveredRoute.y} />}
     </div>

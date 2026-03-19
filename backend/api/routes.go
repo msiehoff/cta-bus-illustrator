@@ -21,6 +21,7 @@ func (a *API) registerRoutes() {
 		v1.GET("/health", a.handleHealth)
 		v1.GET("/routes", a.handleGetRoutes)
 		v1.POST("/routes/import-segments", a.handleImportRouteSegments)
+		v1.GET("/ridership/months", a.handleGetRidershipMonths)
 		v1.POST("/ridership/import", a.handleImportRidership)
 	}
 }

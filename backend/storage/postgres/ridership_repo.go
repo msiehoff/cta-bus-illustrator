@@ -24,6 +24,16 @@ func (r *RidershipRepo) GetLatestMonth() (time.Time, error) {
 	return model.MonthBeginning, nil
 }
 
+func (r *RidershipRepo) GetAvailableMonths() ([]time.Time, error) {
+	var months []time.Time
+	err := r.db.Model(&ridershipModel{}).
+		Where("deleted_at IS NULL").
+		Distinct("month_beginning").
+		Order("month_beginning DESC").
+		Pluck("month_beginning", &months).Error
+	return months, err
+}
+
 func (r *RidershipRepo) GetByMonth(month time.Time, ridershipType business.RidershipType) (map[string]*business.RidershipRecord, error) {
 	var rows []ridershipRow
 	err := r.db.Model(&ridershipModel{}).
