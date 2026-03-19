@@ -10,6 +10,14 @@ const CHICAGO_CENTER = { longitude: -87.6298, latitude: 41.8781 }
 const MAX_ZOOM = 15
 const ROUTE_COLOR = '#009BDE'
 
+// Maps each route id to its express/local counterpart.
+// Both directions are listed so a lookup always works regardless of which is hovered.
+const EXPRESS_PAIRS: Record<string, string> = {
+  '4': 'X4', 'X4': '4',
+  '9': 'X9', 'X9': '9',
+  '49': 'X49', 'X49': '49',
+}
+
 const routeLineLayer: LayerProps = {
   id: 'bus-routes',
   type: 'line',
@@ -28,11 +36,27 @@ const routeLineLayer: LayerProps = {
   },
 }
 
-interface HoveredRoute {
+export interface SingleTooltipData {
+  type: 'single'
   properties: RouteProperties
+}
+
+export interface CorridorTooltipData {
+  type: 'corridor'
+  local: RouteProperties
+  express: RouteProperties
+}
+
+export type TooltipData = SingleTooltipData | CorridorTooltipData
+
+interface HoveredRoute {
+  data: TooltipData
   x: number
   y: number
 }
+
+const findRouteProperties = (routeId: string, routes: GetRoutesResponse): RouteProperties | null =>
+  (routes.features.find(f => f.properties.routeId === routeId)?.properties) ?? null
 
 const RouteMap = () => {
   const mapRef = useRef<MapRef>(null)
@@ -56,18 +80,36 @@ const RouteMap = () => {
     const canvas = mapRef.current?.getCanvas()
     const feature = e.features?.[0]
 
-    if (feature?.properties) {
-      if (canvas) canvas.style.cursor = 'pointer'
-      setHoveredRoute({
-        properties: feature.properties as RouteProperties,
-        x: e.point.x,
-        y: e.point.y,
-      })
-    } else {
+    if (!feature?.properties) {
       if (canvas) canvas.style.cursor = ''
       setHoveredRoute(null)
+      return
     }
-  }, [])
+
+    if (canvas) canvas.style.cursor = 'pointer'
+    const props = feature.properties as RouteProperties
+    const { x, y } = e.point
+
+    const pairedId = EXPRESS_PAIRS[props.routeId]
+    if (pairedId && routes) {
+      const pairedProps = findRouteProperties(pairedId, routes)
+      if (pairedProps) {
+        const isExpress = props.routeId.startsWith('X')
+        setHoveredRoute({
+          data: {
+            type: 'corridor',
+            local: isExpress ? pairedProps : props,
+            express: isExpress ? props : pairedProps,
+          },
+          x,
+          y,
+        })
+        return
+      }
+    }
+
+    setHoveredRoute({ data: { type: 'single', properties: props }, x, y })
+  }, [routes])
 
   const onMouseLeave = useCallback(() => {
     const canvas = mapRef.current?.getCanvas()
@@ -95,7 +137,7 @@ const RouteMap = () => {
         )}
       </Map>
 
-      {hoveredRoute && <RouteTooltip {...hoveredRoute} />}
+      {hoveredRoute && <RouteTooltip data={hoveredRoute.data} x={hoveredRoute.x} y={hoveredRoute.y} />}
     </div>
   )
 }
