@@ -114,6 +114,10 @@ const RouteMap = () => {
   const [ridershipType, setRidershipType] = useState<RidershipType>('weekday')
   const [monthsLoaded, setMonthsLoaded] = useState(false)
 
+  // Highlight state: ids = route IDs to illuminate, key = timestamp to re-trigger same route.
+  const [highlight, setHighlight] = useState<{ ids: string[]; key: number } | null>(null)
+  const [highlightVisible, setHighlightVisible] = useState(true)
+
   // Top 10 ranked corridors/routes derived from current ridership data.
   const rankedEntries = useMemo(() => routes ? computeRankedEntries(routes) : [], [routes])
 
@@ -130,6 +134,30 @@ const RouteMap = () => {
     }
     return map
   }, [rankedEntries])
+
+  // Blink the highlight layer 4 times over ~2 seconds, then clear.
+  useEffect(() => {
+    if (!highlight) return
+    setHighlightVisible(true)
+    let count = 0
+    const interval = setInterval(() => {
+      count++
+      setHighlightVisible(v => !v)
+      if (count >= 8) {
+        clearInterval(interval)
+        setHighlight(null)
+        setHighlightVisible(true)
+      }
+    }, 250)
+    return () => clearInterval(interval)
+  }, [highlight?.key]) // key changes on every click, so same route can re-trigger
+
+  const onRouteListClick = useCallback((entry: RankedEntry) => {
+    const ids = entry.data.type === 'single'
+      ? [entry.data.properties.routeId]
+      : [entry.data.local.routeId, entry.data.express.routeId]
+    setHighlight({ ids, key: Date.now() })
+  }, [])
 
   // Fetch available ridership months once on mount.
   useEffect(() => {
@@ -224,6 +252,23 @@ const RouteMap = () => {
         {routes && (
           <Source id="bus-routes" type="geojson" data={routes}>
             <Layer {...routeLineLayer} />
+            {highlight && (
+              <Layer
+                id="bus-routes-highlight"
+                type="line"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                filter={['match', ['get', 'routeId'], highlight.ids, true, false] as any}
+                paint={{
+                  'line-color': '#ffffff',
+                  'line-width': 14,
+                  'line-opacity': highlightVisible ? 0.8 : 0,
+                  // Disable MapLibre's default 300 ms transition so blinks are sharp.
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  'line-opacity-transition': { duration: 0, delay: 0 } as any,
+                  'line-blur': 3,
+                }}
+              />
+            )}
           </Source>
         )}
       </Map>
@@ -235,6 +280,7 @@ const RouteMap = () => {
         rankedEntries={rankedEntries}
         onMonthChange={setSelectedMonth}
         onTypeChange={setRidershipType}
+        onRouteClick={onRouteListClick}
       />
 
       {hoveredRoute && (

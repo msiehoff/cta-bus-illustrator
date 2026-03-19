@@ -10,6 +10,7 @@ interface Props {
   rankedEntries: RankedEntry[]
   onMonthChange: (month: string) => void
   onTypeChange: (type: RidershipType) => void
+  onRouteClick: (entry: RankedEntry) => void
 }
 
 const RIDERSHIP_TYPES: { value: RidershipType; label: string }[] = [
@@ -37,7 +38,7 @@ const selectClass = 'w-full bg-gray-800 border border-gray-700 text-white text-s
 const labelClass = 'text-gray-400 text-xs uppercase tracking-widest block mb-1.5'
 const dividerClass = 'h-px bg-gray-700/60'
 
-const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntries, onMonthChange, onTypeChange }: Props) => (
+const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntries, onMonthChange, onTypeChange, onRouteClick }: Props) => (
   <div className="absolute top-3 left-3 z-10 pointer-events-auto">
     <div className="bg-gray-900/90 backdrop-blur border border-gray-700/60 rounded-xl shadow-2xl p-3 flex flex-col gap-3 w-48">
 
@@ -95,7 +96,11 @@ const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntrie
               {rankedEntries.map(entry => {
                 const { routeId, name } = getEntryDisplay(entry.data)
                 return (
-                  <div key={entry.rank} className="flex items-center gap-1.5 py-1">
+                  <div
+                    key={entry.rank}
+                    className="flex items-center gap-1.5 py-1 rounded-lg px-1 -mx-1 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                    onClick={() => onRouteClick(entry)}
+                  >
                     <span className="text-gray-500 text-xs tabular-nums w-4 shrink-0 text-right">
                       {entry.rank}
                     </span>
