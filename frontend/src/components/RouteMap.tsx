@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState } from 'react'
+import { useRef, useCallback, useEffect, useState, useMemo } from 'react'
 import Map, { Layer, Source, type MapRef, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
 import type { LayerProps } from 'react-map-gl/maplibre'
 import type { GetRoutesResponse, RouteProperties, RidershipType } from '../types/api'
@@ -51,6 +51,12 @@ export interface CorridorTooltipData {
 
 export type TooltipData = SingleTooltipData | CorridorTooltipData
 
+export interface RankedEntry {
+  rank: number
+  data: TooltipData
+  totalRides: number
+}
+
 interface HoveredRoute {
   data: TooltipData
   x: number
@@ -59,6 +65,44 @@ interface HoveredRoute {
 
 const findRouteProperties = (routeId: string, routes: GetRoutesResponse): RouteProperties | null =>
   (routes.features.find(f => f.properties.routeId === routeId)?.properties) ?? null
+
+const computeRankedEntries = (routes: GetRoutesResponse): RankedEntry[] => {
+  const seen = new Set<string>()
+  const entries: Array<{ data: TooltipData; totalRides: number }> = []
+
+  for (const feature of routes.features) {
+    const props = feature.properties
+    if (seen.has(props.routeId)) continue
+    seen.add(props.routeId)
+
+    const pairedId = EXPRESS_PAIRS[props.routeId]
+    if (pairedId) {
+      const pairedProps = findRouteProperties(pairedId, routes)
+      if (pairedProps) {
+        seen.add(pairedId)
+        const isExpress = props.routeId.startsWith('X')
+        const local = isExpress ? pairedProps : props
+        const express = isExpress ? props : pairedProps
+        entries.push({
+          data: { type: 'corridor', local, express },
+          totalRides: (local.avgRides ?? 0) + (express.avgRides ?? 0),
+        })
+        continue
+      }
+    }
+
+    entries.push({
+      data: { type: 'single', properties: props },
+      totalRides: props.avgRides ?? 0,
+    })
+  }
+
+  return entries
+    .filter(e => e.totalRides > 0)
+    .sort((a, b) => b.totalRides - a.totalRides)
+    .slice(0, 10)
+    .map((entry, i) => ({ ...entry, rank: i + 1 }))
+}
 
 const RouteMap = () => {
   const mapRef = useRef<MapRef>(null)
@@ -69,6 +113,23 @@ const RouteMap = () => {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const [ridershipType, setRidershipType] = useState<RidershipType>('weekday')
   const [monthsLoaded, setMonthsLoaded] = useState(false)
+
+  // Top 10 ranked corridors/routes derived from current ridership data.
+  const rankedEntries = useMemo(() => routes ? computeRankedEntries(routes) : [], [routes])
+
+  // Quick lookup: routeId → rank (both IDs of a corridor pair map to the same rank).
+  const rankByRouteId = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const entry of rankedEntries) {
+      if (entry.data.type === 'single') {
+        map[entry.data.properties.routeId] = entry.rank
+      } else {
+        map[entry.data.local.routeId] = entry.rank
+        map[entry.data.express.routeId] = entry.rank
+      }
+    }
+    return map
+  }, [rankedEntries])
 
   // Fetch available ridership months once on mount.
   useEffect(() => {
@@ -141,6 +202,12 @@ const RouteMap = () => {
     setHoveredRoute(null)
   }, [])
 
+  const hoveredRank = hoveredRoute
+    ? hoveredRoute.data.type === 'single'
+      ? rankByRouteId[hoveredRoute.data.properties.routeId]
+      : rankByRouteId[hoveredRoute.data.local.routeId]
+    : undefined
+
   return (
     <div className="relative w-full h-full">
       <Map
@@ -165,11 +232,19 @@ const RouteMap = () => {
         availableMonths={availableMonths}
         selectedMonth={selectedMonth}
         ridershipType={ridershipType}
+        rankedEntries={rankedEntries}
         onMonthChange={setSelectedMonth}
         onTypeChange={setRidershipType}
       />
 
-      {hoveredRoute && <RouteTooltip data={hoveredRoute.data} x={hoveredRoute.x} y={hoveredRoute.y} />}
+      {hoveredRoute && (
+        <RouteTooltip
+          data={hoveredRoute.data}
+          x={hoveredRoute.x}
+          y={hoveredRoute.y}
+          rank={hoveredRank}
+        />
+      )}
     </div>
   )
 }

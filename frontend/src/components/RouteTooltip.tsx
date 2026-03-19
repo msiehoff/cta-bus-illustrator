@@ -5,6 +5,7 @@ interface Props {
   data: TooltipData
   x: number
   y: number
+  rank?: number
 }
 
 const OFFSET = 14
@@ -16,6 +17,13 @@ const RouteIdBadge = ({ routeId }: { routeId: string }) => (
 )
 
 const Divider = () => <div className="h-px bg-gray-700/60 my-3" />
+
+const RankBanner = ({ rank }: { rank: number }) => (
+  <div className="flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/30 rounded-lg px-2.5 py-1.5 mb-3">
+    <span className="text-amber-400 text-xs font-bold tabular-nums">#{rank}</span>
+    <span className="text-amber-300/80 text-xs">highest avg ridership</span>
+  </div>
+)
 
 const RidershipRow = ({ properties }: { properties: RouteProperties }) => (
   <div className="flex items-center justify-between gap-2 py-1">
@@ -71,12 +79,13 @@ const CorridorView = ({ local, express }: { local: RouteProperties; express: Rou
   )
 }
 
-const RouteTooltip = ({ data, x, y }: Props) => (
+const RouteTooltip = ({ data, x, y, rank }: Props) => (
   <div
     className="absolute z-10 pointer-events-none"
     style={{ left: x + OFFSET, top: y + OFFSET }}
   >
     <div className="bg-gray-900 border border-gray-700/60 rounded-xl shadow-2xl p-4 w-60">
+      {rank !== undefined && <RankBanner rank={rank} />}
       {data.type === 'single'
         ? <SingleView properties={data.properties} />
         : <CorridorView local={data.local} express={data.express} />
