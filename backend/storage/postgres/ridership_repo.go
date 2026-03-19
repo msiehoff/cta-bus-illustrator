@@ -5,6 +5,7 @@ import (
 
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type RidershipRepo struct {
@@ -44,4 +45,56 @@ func (r *RidershipRepo) GetByMonth(month time.Time, ridershipType business.Rider
 		}
 	}
 	return result, nil
+}
+
+func (r *RidershipRepo) UpsertBatch(records []business.RidershipRecord) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	// Collect unique external IDs and build a lookup map to route PKs.
+	idSet := make(map[string]struct{}, len(records))
+	for _, rec := range records {
+		idSet[rec.RouteExternalID] = struct{}{}
+	}
+	externalIDs := make([]string, 0, len(idSet))
+	for id := range idSet {
+		externalIDs = append(externalIDs, id)
+	}
+
+	var routes []routeModel
+	if err := r.db.Where("external_id IN ?", externalIDs).Find(&routes).Error; err != nil {
+		return err
+	}
+
+	routeIDByExternal := make(map[string]uint, len(routes))
+	for _, route := range routes {
+		routeIDByExternal[route.ExternalID] = route.ID
+	}
+
+	models := make([]ridershipModel, 0, len(records))
+	for _, rec := range records {
+		routeID, ok := routeIDByExternal[rec.RouteExternalID]
+		if !ok {
+			continue // skip records for routes not in the DB
+		}
+		models = append(models, ridershipModel{
+			RouteID:        routeID,
+			MonthBeginning: rec.MonthBeginning,
+			Type:           string(rec.Type),
+			AvgRides:       rec.AvgRides,
+		})
+	}
+
+	return r.db.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "route_id"},
+			{Name: "month_beginning"},
+			{Name: "type"},
+		},
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"avg_rides":  gorm.Expr("EXCLUDED.avg_rides"),
+			"updated_at": gorm.Expr("NOW()"),
+		}),
+	}).CreateInBatches(&models, 500).Error
 }

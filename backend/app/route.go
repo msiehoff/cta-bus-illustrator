@@ -52,6 +52,10 @@ func (s *RouteService) GetLatestRidershipMonth() (time.Time, error) {
 	return s.ridershipRepo.GetLatestMonth()
 }
 
+func (s *RouteService) ImportRidership(records []business.RidershipRecord) error {
+	return s.ridershipRepo.UpsertBatch(records)
+}
+
 func (s *RouteService) ImportRouteSegments(ctx context.Context, dataSrc RouteSegmentDataSource) error {
 	routes, err := s.repo.GetRoutes()
 	if err != nil {

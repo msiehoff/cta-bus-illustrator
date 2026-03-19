@@ -9,6 +9,7 @@ import (
 type RidershipRepository interface {
 	GetLatestMonth() (time.Time, error)
 	GetByMonth(month time.Time, ridershipType business.RidershipType) (map[string]*business.RidershipRecord, error)
+	UpsertBatch(records []business.RidershipRecord) error
 }
 
 type RouteWithRidership struct {

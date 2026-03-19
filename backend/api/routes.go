@@ -21,6 +21,7 @@ func (a *API) registerRoutes() {
 		v1.GET("/health", a.handleHealth)
 		v1.GET("/routes", a.handleGetRoutes)
 		v1.POST("/routes/import-segments", a.handleImportRouteSegments)
+		v1.POST("/ridership/import", a.handleImportRidership)
 	}
 }
 
@@ -37,6 +38,7 @@ func (a *API) handleGetRoutes(c *gin.Context) {
 		return
 	}
 
+	
 	ridershipType, err := resolveRidershipType(c.Query("type"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

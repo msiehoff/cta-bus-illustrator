@@ -12,6 +12,10 @@ func (r *RidershipRepo) GetLatestMonth() (time.Time, error) {
 	return time.Date(2025, 11, 1, 0, 0, 0, 0, time.UTC), nil
 }
 
+func (r *RidershipRepo) UpsertBatch(_ []business.RidershipRecord) error {
+	return nil
+}
+
 func (r *RidershipRepo) GetByMonth(_ time.Time, ridershipType business.RidershipType) (map[string]*business.RidershipRecord, error) {
 	avgRides := map[business.RidershipType]float64{
 		business.RidershipTypeWeekday:  8500,
