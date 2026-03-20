@@ -13,7 +13,10 @@ import (
 )
 
 func main() {
-	var routeRepo app.RouteRepository
+	var (
+		routeRepo     app.RouteRepository
+		ridershipRepo app.RidershipRepository
+	)
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn != "" {
@@ -32,16 +35,18 @@ func main() {
 		}
 
 		routeRepo = pgstore.NewRouteRepo(db)
+		ridershipRepo = pgstore.NewRidershipRepo(db)
 		log.Println("using postgres repository")
 	} else {
 		log.Println("DATABASE_URL not set — using fake repository")
 		routeRepo = &fake.RouteRepo{}
+		ridershipRepo = &fake.RidershipRepo{}
 	}
 
 	ctaAPIKey := os.Getenv("CTA_API_KEY")
 	ctaDataSrc := cta.NewRouteSegmentDataSource(cta.NewClient(ctaAPIKey))
 
-	routeService := app.NewRouteService(routeRepo)
+	routeService := app.NewRouteService(routeRepo, ridershipRepo)
 	a := api.New(routeService, ctaDataSrc)
 	if err := a.Run(":8080"); err != nil {
 		log.Fatalf("server error: %v", err)

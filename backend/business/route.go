@@ -4,9 +4,7 @@ type Route struct {
 	ExternalID string
 	Name       string
 
-	Color     string
-	Ridership int
-	Segments  []RouteSegment
+	Segments []RouteSegment
 }
 
 type RouteSegment struct {

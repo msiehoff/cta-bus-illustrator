@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
@@ -18,15 +19,45 @@ type RouteSegmentDataSource interface {
 }
 
 type RouteService struct {
-	repo RouteRepository
+	repo          RouteRepository
+	ridershipRepo RidershipRepository
 }
 
-func NewRouteService(repo RouteRepository) *RouteService {
-	return &RouteService{repo: repo}
+func NewRouteService(repo RouteRepository, ridershipRepo RidershipRepository) *RouteService {
+	return &RouteService{repo: repo, ridershipRepo: ridershipRepo}
 }
 
-func (s *RouteService) GetRoutes() ([]business.Route, error) {
-	return s.repo.GetRoutes()
+func (s *RouteService) GetRoutesForMonth(month time.Time, ridershipType business.RidershipType) ([]RouteWithRidership, error) {
+	routes, err := s.repo.GetRoutes()
+	if err != nil {
+		return nil, err
+	}
+
+	ridershipByRoute, err := s.ridershipRepo.GetByMonth(month, ridershipType)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]RouteWithRidership, len(routes))
+	for i, route := range routes {
+		result[i] = RouteWithRidership{
+			Route:     route,
+			Ridership: ridershipByRoute[route.ExternalID],
+		}
+	}
+	return result, nil
+}
+
+func (s *RouteService) GetLatestRidershipMonth() (time.Time, error) {
+	return s.ridershipRepo.GetLatestMonth()
+}
+
+func (s *RouteService) GetAvailableRidershipMonths() ([]time.Time, error) {
+	return s.ridershipRepo.GetAvailableMonths()
+}
+
+func (s *RouteService) ImportRidership(records []business.RidershipRecord) error {
+	return s.ridershipRepo.UpsertBatch(records)
 }
 
 func (s *RouteService) ImportRouteSegments(ctx context.Context, dataSrc RouteSegmentDataSource) error {
