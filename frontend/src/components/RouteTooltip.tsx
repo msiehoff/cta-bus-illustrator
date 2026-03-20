@@ -11,7 +11,7 @@ interface Props {
 const OFFSET = 14
 
 const RouteIdBadge = ({ routeId }: { routeId: string }) => (
-  <span className="shrink-0 bg-blue-600 text-white text-xs font-mono font-bold px-2 py-0.5 rounded-full">
+  <span className="shrink-0 inline-flex items-center bg-blue-600 text-white text-xs font-mono font-bold px-2 py-0.5 rounded-full leading-none">
     {routeId}
   </span>
 )

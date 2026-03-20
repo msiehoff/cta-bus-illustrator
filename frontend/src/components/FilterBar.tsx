@@ -92,21 +92,21 @@ const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntrie
 
           <div>
             <label className={labelClass}>Top Routes</label>
-            <div className="flex flex-col gap-0.5 max-h-72 overflow-y-auto">
+            <div className="flex flex-col gap-0.5">
               {rankedEntries.map(entry => {
                 const { routeId, name } = getEntryDisplay(entry.data)
                 return (
                   <div
                     key={entry.rank}
-                    className="flex items-center gap-1.5 py-1 rounded-lg px-1 -mx-1 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                    className="flex items-center gap-1.5 py-1 rounded-lg px-1 cursor-pointer hover:bg-gray-700/50 transition-colors"
                     onClick={() => onRouteClick(entry)}
                   >
                     <span className="text-gray-500 text-xs tabular-nums w-4 shrink-0 text-right">
                       {entry.rank}
                     </span>
                     <span className={twMerge(
-                      'shrink-0 bg-blue-600 text-white font-mono font-bold rounded-full px-1.5',
-                      'text-[10px] leading-4'
+                      'shrink-0 inline-flex items-center bg-blue-600 text-white font-mono font-bold rounded-full px-1.5 py-0.5 leading-none',
+                      'text-[10px]'
                     )}>
                       {routeId}
                     </span>
