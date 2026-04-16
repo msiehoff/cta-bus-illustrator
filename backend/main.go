@@ -22,21 +22,27 @@ func main() {
 	if dsn != "" {
 		db, err := pgstore.Connect(dsn)
 		if err != nil {
-			log.Fatalf("db connection error: %v", err)
+			// log.Fatalf("db connection error: %v", err)
+			log.Println("db connection error: %v", err)
+			log.Println("%s", dsn)
+
+			routeRepo = &fake.RouteRepo{}
+			ridershipRepo = &fake.RidershipRepo{}
+		} else {
+			sqlDB, err := db.DB()
+			if err != nil {
+				log.Println("failed to get underlying sql.DB: %v", err)
+			}
+
+			if err := migrations.Run(sqlDB); err != nil {
+				log.Println("migration error: %v", err)
+			}
+
+			routeRepo = pgstore.NewRouteRepo(db)
+			ridershipRepo = pgstore.NewRidershipRepo(db)
+			log.Println("using postgres repository")
 		}
 
-		sqlDB, err := db.DB()
-		if err != nil {
-			log.Fatalf("failed to get underlying sql.DB: %v", err)
-		}
-
-		if err := migrations.Run(sqlDB); err != nil {
-			log.Fatalf("migration error: %v", err)
-		}
-
-		routeRepo = pgstore.NewRouteRepo(db)
-		ridershipRepo = pgstore.NewRidershipRepo(db)
-		log.Println("using postgres repository")
 	} else {
 		log.Println("DATABASE_URL not set — using fake repository")
 		routeRepo = &fake.RouteRepo{}
