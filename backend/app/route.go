@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -65,19 +66,24 @@ func (s *RouteService) ImportRouteSegments(ctx context.Context, dataSrc RouteSeg
 	if err != nil {
 		return err
 	}
+	log.Printf("\nroutes retrieved: %d", len(routes))
 
 	var errs *multierror.Error
 	for _, route := range routes {
 		segments, err := dataSrc.GetRouteSegments(ctx, route.ExternalID)
 		if err != nil {
+			log.Printf("failed to get route segments for route %s: %v", route.ExternalID, err)
 			errs = multierror.Append(errs, err)
 			continue
 		}
 
+		log.Printf("segments retrieved for route %s: %d", route.ExternalID, len(segments))
 		if err := s.repo.CreateSegments(route.ExternalID, segments); err != nil {
+			log.Printf("failed to create segments for route %s: %v", route.ExternalID, err)
 			errs = multierror.Append(errs, err)
 		}
 	}
 
+	log.Printf("total errors: %d", errs.Len())
 	return errs.ErrorOrNil()
 }
