@@ -61,7 +61,7 @@ func (s *RouteService) ImportRidership(records []business.RidershipRecord) error
 	return s.ridershipRepo.UpsertBatch(records)
 }
 
-func (s *RouteService) ImportRouteSegments(ctx context.Context, dataSrc RouteSegmentDataSource) error {
+func (s *RouteService) ImportRouteSegmentsFromSrc(ctx context.Context, dataSrc RouteSegmentDataSource) error {
 	routes, err := s.repo.GetRoutes()
 	if err != nil {
 		return err
@@ -78,12 +78,20 @@ func (s *RouteService) ImportRouteSegments(ctx context.Context, dataSrc RouteSeg
 		}
 
 		log.Printf("\nsegments retrieved for route %s: %d", route.ExternalID, len(segments))
-		if err := s.repo.CreateSegments(route.ExternalID, segments); err != nil {
-			log.Printf("failed to create segments for route %s: %v", route.ExternalID, err)
+		if err := s.ImportRouteSegments(ctx, route.ExternalID, segments); err != nil {
+			log.Printf("failed to import segments for route %s: %v", route.ExternalID, err)
 			errs = multierror.Append(errs, err)
 		}
 	}
 
 	log.Printf("\ntotal errors: %d", errs.Len())
 	return errs.ErrorOrNil()
+}
+
+func (s *RouteService) ImportRouteSegments(ctx context.Context, routeID string, segments []business.RouteSegment) error {
+	if err := s.repo.CreateSegments(routeID, segments); err != nil {
+		log.Printf("failed to create segments for route %s: %v", routeID, err)
+		return err
+	}
+	return nil
 }

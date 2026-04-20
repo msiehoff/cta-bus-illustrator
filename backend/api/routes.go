@@ -39,7 +39,6 @@ func (a *API) handleGetRoutes(c *gin.Context) {
 		return
 	}
 
-	
 	ridershipType, err := resolveRidershipType(c.Query("type"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -56,7 +55,7 @@ func (a *API) handleGetRoutes(c *gin.Context) {
 }
 
 func (a *API) handleImportRouteSegments(c *gin.Context) {
-	if err := a.routeService.ImportRouteSegments(c.Request.Context(), a.ctaDataSrc); err != nil {
+	if err := a.routeService.ImportRouteSegmentsFromSrc(c.Request.Context(), a.ctaDataSrc); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
