@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/msiehoff/cta-bus-illustrator/backend/business"
 )
 
 type Client struct {
@@ -34,6 +36,24 @@ func (c *Client) GetRoutePattern(routeID string) (*GetRoutePatternResponse, erro
 		return nil, err
 	}
 	return &response, nil
+}
+
+// SegmentsFromPatternResponse maps a getpatterns JSON body to route segments using only
+// the first direction in ptr (same as live CTA import) to avoid duplicating north/south polylines.
+func SegmentsFromPatternResponse(resp *GetRoutePatternResponse) ([]business.RouteSegment, error) {
+	if resp == nil || len(resp.BustimeResponse.Ptr) == 0 {
+		return nil, fmt.Errorf("no pattern directions in response")
+	}
+	direction := resp.BustimeResponse.Ptr[0]
+	out := make([]business.RouteSegment, 0, len(direction.Pt))
+	for _, p := range direction.Pt {
+		out = append(out, business.RouteSegment{
+			Sequence: p.Seq,
+			Lat:      p.Lat,
+			Lng:      p.Lon,
+		})
+	}
+	return out, nil
 }
 
 type GetRoutePatternResponse struct {
