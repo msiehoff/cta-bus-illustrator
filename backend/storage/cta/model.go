@@ -38,20 +38,30 @@ func (c *Client) GetRoutePattern(routeID string) (*GetRoutePatternResponse, erro
 	return &response, nil
 }
 
-// SegmentsFromPatternResponse maps a getpatterns JSON body to route segments using only
-// the first direction in ptr (same as live CTA import) to avoid duplicating north/south polylines.
+// SegmentsFromPatternResponse maps a getpatterns JSON body to route segments.
+// It keeps only Northbound/Eastbound directions to avoid importing the reverse
+// direction (Southbound/Westbound) for the same route.
 func SegmentsFromPatternResponse(resp *GetRoutePatternResponse) ([]business.RouteSegment, error) {
 	if resp == nil || len(resp.BustimeResponse.Ptr) == 0 {
 		return nil, fmt.Errorf("no pattern directions in response")
 	}
-	direction := resp.BustimeResponse.Ptr[0]
-	out := make([]business.RouteSegment, 0, len(direction.Pt))
-	for _, p := range direction.Pt {
-		out = append(out, business.RouteSegment{
-			Sequence: p.Seq,
-			Lat:      p.Lat,
-			Lng:      p.Lon,
-		})
+
+	out := make([]business.RouteSegment, 0)
+	for _, direction := range resp.BustimeResponse.Ptr {
+		if direction.Rtdir != "Northbound" && direction.Rtdir != "Eastbound" {
+			continue
+		}
+		for _, p := range direction.Pt {
+			out = append(out, business.RouteSegment{
+				Sequence: p.Seq,
+				Lat:      p.Lat,
+				Lng:      p.Lon,
+			})
+		}
+	}
+
+	if len(out) == 0 {
+		return nil, fmt.Errorf("no northbound/eastbound pattern directions in response")
 	}
 	return out, nil
 }
