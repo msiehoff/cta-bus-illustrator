@@ -72,18 +72,18 @@ func (s *RouteService) ImportRouteSegments(ctx context.Context, dataSrc RouteSeg
 	for _, route := range routes {
 		segments, err := dataSrc.GetRouteSegments(ctx, route.ExternalID)
 		if err != nil {
-			log.Printf("failed to get route segments for route %s: %v", route.ExternalID, err)
+			log.Printf("\nfailed to get route segments for route %s: %v", route.ExternalID, err)
 			errs = multierror.Append(errs, err)
 			continue
 		}
 
-		log.Printf("segments retrieved for route %s: %d", route.ExternalID, len(segments))
+		log.Printf("\nsegments retrieved for route %s: %d", route.ExternalID, len(segments))
 		if err := s.repo.CreateSegments(route.ExternalID, segments); err != nil {
 			log.Printf("failed to create segments for route %s: %v", route.ExternalID, err)
 			errs = multierror.Append(errs, err)
 		}
 	}
 
-	log.Printf("total errors: %d", errs.Len())
+	log.Printf("\ntotal errors: %d", errs.Len())
 	return errs.ErrorOrNil()
 }

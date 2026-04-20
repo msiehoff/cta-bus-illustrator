@@ -3,8 +3,9 @@ package cta
 import (
 	"context"
 
+	"log"
+
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
-	"github.com/prometheus/common/log"
 )
 
 type RouteSegmentDataSource struct {
@@ -18,7 +19,7 @@ func NewRouteSegmentDataSource(client *Client) *RouteSegmentDataSource {
 func (d *RouteSegmentDataSource) GetRouteSegments(ctx context.Context, routeID string) ([]business.RouteSegment, error) {
 	routeSegments, err := d.client.GetRoutePattern(routeID)
 	if err != nil {
-		log.Errorf("failed to get route segments for route %s: %v", routeID, err)
+		log.Printf("\nfailed to get route segments for route %s: %v", routeID, err)
 		return nil, err
 	}
 
