@@ -39,29 +39,41 @@ func (c *Client) GetRoutePattern(routeID string) (*GetRoutePatternResponse, erro
 }
 
 // SegmentsFromPatternResponse maps a getpatterns JSON body to route segments.
-// It keeps only Northbound/Eastbound directions to avoid importing the reverse
-// direction (Southbound/Westbound) for the same route.
+// It considers only Northbound/Eastbound ptr entries (skips Southbound/Westbound).
+// When multiple such patterns exist (alternate routings, e.g. State vs Halsted),
+// it picks the single pattern with the largest ln (CTA-reported path length), not
+// all of them: concatenating multiple polylines would connect the end of one path
+// to the start of another and draw long bogus diagonals on the map.
 func SegmentsFromPatternResponse(resp *GetRoutePatternResponse) ([]business.RouteSegment, error) {
 	if resp == nil || len(resp.BustimeResponse.Ptr) == 0 {
 		return nil, fmt.Errorf("no pattern directions in response")
 	}
 
-	out := make([]business.RouteSegment, 0)
-	for _, direction := range resp.BustimeResponse.Ptr {
-		if direction.Rtdir != "Northbound" && direction.Rtdir != "Eastbound" {
+	bestIdx := -1
+	bestLen := -1.0
+	for i := range resp.BustimeResponse.Ptr {
+		d := resp.BustimeResponse.Ptr[i]
+		if d.Rtdir != "Northbound" && d.Rtdir != "Eastbound" {
 			continue
 		}
-		for _, p := range direction.Pt {
-			out = append(out, business.RouteSegment{
-				Sequence: p.Seq,
-				Lat:      p.Lat,
-				Lng:      p.Lon,
-			})
+		if d.Ln > bestLen {
+			bestLen = d.Ln
+			bestIdx = i
 		}
 	}
 
-	if len(out) == 0 {
+	if bestIdx < 0 {
 		return nil, fmt.Errorf("no northbound/eastbound pattern directions in response")
+	}
+
+	direction := resp.BustimeResponse.Ptr[bestIdx]
+	out := make([]business.RouteSegment, 0, len(direction.Pt))
+	for _, p := range direction.Pt {
+		out = append(out, business.RouteSegment{
+			Sequence: p.Seq,
+			Lat:      p.Lat,
+			Lng:      p.Lon,
+		})
 	}
 	return out, nil
 }
