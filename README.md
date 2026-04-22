@@ -1,4 +1,4 @@
-# CTA Bus Illustrator
+# Chicago Transit Lab
 
 An interactive map that visualizes CTA bus ridership across Chicago's route network. Line color and thickness scale with average daily ridership, making it easy to see which corridors carry the most riders and how demand compares across day types and months.
 
