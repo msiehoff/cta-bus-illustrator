@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
+	"github.com/msiehoff/cta-bus-illustrator/backend/storage/cta"
 )
 
 var validRidershipTypes = map[string]business.RidershipType{
@@ -21,6 +22,7 @@ func (a *API) registerRoutes() {
 		v1.GET("/health", a.handleHealth)
 		v1.GET("/routes", a.handleGetRoutes)
 		v1.POST("/routes/import-segments", a.handleImportRouteSegments)
+		v1.POST("/routes/:externalId/segments", a.handleImportRouteSegmentsJSON)
 		v1.GET("/ridership/months", a.handleGetRidershipMonths)
 		v1.POST("/ridership/import", a.handleImportRidership)
 	}
@@ -39,7 +41,6 @@ func (a *API) handleGetRoutes(c *gin.Context) {
 		return
 	}
 
-	
 	ridershipType, err := resolveRidershipType(c.Query("type"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -56,11 +57,32 @@ func (a *API) handleGetRoutes(c *gin.Context) {
 }
 
 func (a *API) handleImportRouteSegments(c *gin.Context) {
-	if err := a.routeService.ImportRouteSegments(c.Request.Context(), a.ctaDataSrc); err != nil {
+	if err := a.routeService.ImportRouteSegmentsFromSrc(c.Request.Context(), a.ctaDataSrc); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+// handleImportRouteSegmentsJSON accepts a saved getpatterns JSON body (bustime-response shape)
+// and imports segments for :externalId using the first direction only.
+func (a *API) handleImportRouteSegmentsJSON(c *gin.Context) {
+	externalID := c.Param("externalId")
+	var body cta.GetRoutePatternResponse
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	segments, err := cta.SegmentsFromPatternResponse(&body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := a.routeService.ImportRouteSegments(c.Request.Context(), externalID, segments); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "segments": len(segments)})
 }
 
 // resolveMonth returns the parsed month from the query string, or falls back to

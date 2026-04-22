@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -60,24 +61,37 @@ func (s *RouteService) ImportRidership(records []business.RidershipRecord) error
 	return s.ridershipRepo.UpsertBatch(records)
 }
 
-func (s *RouteService) ImportRouteSegments(ctx context.Context, dataSrc RouteSegmentDataSource) error {
+func (s *RouteService) ImportRouteSegmentsFromSrc(ctx context.Context, dataSrc RouteSegmentDataSource) error {
 	routes, err := s.repo.GetRoutes()
 	if err != nil {
 		return err
 	}
+	log.Printf("\nroutes retrieved: %d", len(routes))
 
 	var errs *multierror.Error
 	for _, route := range routes {
 		segments, err := dataSrc.GetRouteSegments(ctx, route.ExternalID)
 		if err != nil {
+			log.Printf("\nfailed to get route segments for route %s: %v", route.ExternalID, err)
 			errs = multierror.Append(errs, err)
 			continue
 		}
 
-		if err := s.repo.CreateSegments(route.ExternalID, segments); err != nil {
+		log.Printf("\nsegments retrieved for route %s: %d", route.ExternalID, len(segments))
+		if err := s.ImportRouteSegments(ctx, route.ExternalID, segments); err != nil {
+			log.Printf("failed to import segments for route %s: %v", route.ExternalID, err)
 			errs = multierror.Append(errs, err)
 		}
 	}
 
+	log.Printf("\ntotal errors: %d", errs.Len())
 	return errs.ErrorOrNil()
+}
+
+func (s *RouteService) ImportRouteSegments(ctx context.Context, routeID string, segments []business.RouteSegment) error {
+	if err := s.repo.CreateSegments(routeID, segments); err != nil {
+		log.Printf("failed to create segments for route %s: %v", routeID, err)
+		return err
+	}
+	return nil
 }

@@ -51,23 +51,25 @@ func (r *RouteRepo) GetRoute(id string) (business.Route, error) {
 }
 
 func (r *RouteRepo) CreateSegments(routeID string, segments []business.RouteSegment) error {
-	tx := r.db.Begin()
-
-	var model routeModel
-	if err := tx.Where("external_id = ?", routeID).First(&model).Error; err != nil {
-		return err
-	}
-	for _, segment := range segments {
-		if err := tx.Create(&routeSegmentModel{
-			RouteID:  model.ID,
-			Sequence: segment.Sequence,
-			Lat:      segment.Lat,
-			Lng:      segment.Lng,
-		}).Error; err != nil {
-			tx.Rollback()
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var model routeModel
+		if err := tx.Where("external_id = ?", routeID).First(&model).Error; err != nil {
 			return err
 		}
-	}
-
-	return tx.Commit().Error
+		// Replace existing segments so repeated imports are idempotent.
+		if err := tx.Unscoped().Where("route_id = ?", model.ID).Delete(&routeSegmentModel{}).Error; err != nil {
+			return err
+		}
+		for _, segment := range segments {
+			if err := tx.Create(&routeSegmentModel{
+				RouteID:  model.ID,
+				Sequence: segment.Sequence,
+				Lat:      segment.Lat,
+				Lng:      segment.Lng,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
