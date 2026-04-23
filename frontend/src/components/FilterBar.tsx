@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { RidershipType } from '../types/api'
 import type { RankedEntry, TooltipData } from './RouteMap'
@@ -40,10 +41,24 @@ const ridershipTypeLabel = (type: RidershipType) =>
 const selectClass = 'w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 cursor-pointer'
 const labelClass = 'text-gray-400 text-xs uppercase tracking-widest block mb-1.5'
 const dividerClass = 'h-px bg-gray-700/60'
+const LEGEND_TIP_DISMISSED_KEY = 'cta.legendTipDismissed'
 
-const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntries, onMonthChange, onTypeChange, onRouteClick }: Props) => (
-  <div className="absolute top-3 left-3 z-10 pointer-events-auto">
-    <div className="bg-gray-900/90 backdrop-blur border border-gray-700/60 rounded-xl shadow-2xl p-3 flex flex-col gap-3 w-48">
+const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntries, onMonthChange, onTypeChange, onRouteClick }: Props) => {
+  const [showLegendTip, setShowLegendTip] = useState(false)
+
+  useEffect(() => {
+    const isDismissed = localStorage.getItem(LEGEND_TIP_DISMISSED_KEY) === '1'
+    setShowLegendTip(!isDismissed)
+  }, [])
+
+  const dismissLegendTip = () => {
+    localStorage.setItem(LEGEND_TIP_DISMISSED_KEY, '1')
+    setShowLegendTip(false)
+  }
+
+  return (
+    <div className="absolute top-3 left-3 z-10 pointer-events-auto">
+      <div className="bg-gray-900/90 backdrop-blur border border-gray-700/60 rounded-xl shadow-2xl p-3 flex flex-col gap-3 w-52">
 
       <div>
         <label className={labelClass}>Ridership</label>
@@ -89,6 +104,20 @@ const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntrie
         <p className="text-white text-[11px] leading-snug mb-2">
           Thicker lines and warmer colors mean more riders on this scale.
         </p>
+        {showLegendTip && (
+          <div className="mb-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-2 py-1.5">
+            <p className="text-[10px] text-blue-100 leading-snug">
+              Tip: hover any line to see route details and exact ridership.
+            </p>
+            <button
+              type="button"
+              onClick={dismissLegendTip}
+              className="mt-1 text-[10px] text-blue-200 hover:text-white transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        )}
         <div className="h-2.5 rounded-full w-full" style={{ background: legendGradient }} />
         <div className="flex justify-between mt-1">
           {LEGEND_TICKS.map((tick, i) => (
@@ -133,8 +162,9 @@ const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntrie
         </>
       )}
 
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 export default FilterBar
