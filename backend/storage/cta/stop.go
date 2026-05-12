@@ -22,7 +22,7 @@ type Stop struct {
 }
 
 func (c *Client) GetStops(rt, dir string) (*GetStopsResponse, error) {
-	u, err := url.Parse(bustimeV3Base + "/getstops")
+	u, err := url.Parse(c.bustimeV3Base() + "/getstops")
 	if err != nil {
 		return nil, err
 	}

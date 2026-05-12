@@ -20,7 +20,7 @@ type Direction struct {
 }
 
 func (c *Client) GetDirections(rt string) (*GetDirectionsResponse, error) {
-	u, err := url.Parse(bustimeV3Base + "/getdirections")
+	u, err := url.Parse(c.bustimeV3Base() + "/getdirections")
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 func (c *Client) GetRoutePattern(routeID string) (*GetRoutePatternResponse, error) {
-	url := fmt.Sprintf("%s/getpatterns?key=%s&format=json&rt=%s", bustimeV3Base, c.apiKey, routeID)
+	url := fmt.Sprintf("%s/getpatterns?key=%s&format=json&rt=%s", c.bustimeV3Base(), c.apiKey, routeID)
 	start := time.Now()
 	resp, err := http.Get(url)
 	dur := time.Since(start)
