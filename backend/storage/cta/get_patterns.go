@@ -10,16 +10,8 @@ import (
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
 )
 
-type Client struct {
-	apiKey string
-}
-
-func NewClient(apiKey string) *Client {
-	return &Client{apiKey: apiKey}
-}
-
 func (c *Client) GetRoutePattern(routeID string) (*GetRoutePatternResponse, error) {
-	url := fmt.Sprintf("https://www.ctabustracker.com/bustime/api/v3/getpatterns?key=%s&format=json&rt=%s", c.apiKey, routeID)
+	url := fmt.Sprintf("%s/getpatterns?key=%s&format=json&rt=%s", c.bustimeV3Base(), c.apiKey, routeID)
 	start := time.Now()
 	resp, err := http.Get(url)
 	dur := time.Since(start)

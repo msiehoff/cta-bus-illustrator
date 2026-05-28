@@ -1,0 +1,12 @@
+{
+    "bustime-response": {
+        "stops": [
+            {
+                "stpid": "6137",
+                "stpnm": "10112 S Beverly",
+                "lat": 41.710204999999,
+                "lon": -87.657789000001
+            }
+        ]
+    }
+}
