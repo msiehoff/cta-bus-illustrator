@@ -1,0 +1,117 @@
+package app
+
+import (
+	"context"
+	"log"
+	"time"
+)
+
+// PipelineConfig holds the runtime knobs for the arrival detection pipeline.
+type PipelineConfig struct {
+	// RouteIDs is the set of CTA route IDs to monitor (e.g. ["8", "66", "77"]).
+	RouteIDs []string
+
+	// PollInterval controls how often vehicle positions are fetched from the CTA API.
+	// The CTA updates vehicle positions roughly every 30 seconds.
+	PollInterval time.Duration
+
+	// Directions is the set of direction strings to load stops for (e.g. ["Northbound", "Southbound"]).
+	// If empty, only "Northbound" and "Southbound" are used as defaults.
+	Directions []string
+}
+
+// PipelineRunner wires together the three pipeline stages:
+//
+//	Stage 1 — Vehicle fetcher: polls CTAVehicleClient for vehicle positions.
+//	Stage 2 — Arrival detector: stateful single-worker arrival detection.
+//	Stage 3 — DB writer: embedded in the ArrivalDetector via ArrivalRepository.
+type PipelineRunner struct {
+	client   CTAVehicleClient
+	detector *ArrivalDetector
+	cfg      PipelineConfig
+}
+
+// NewPipelineRunner creates a runner wired to the given client and arrival repo.
+func NewPipelineRunner(client CTAVehicleClient, repo ArrivalRepository, cfg PipelineConfig) *PipelineRunner {
+	if len(cfg.Directions) == 0 {
+		cfg.Directions = []string{"Northbound", "Southbound", "Eastbound", "Westbound"}
+	}
+	return &PipelineRunner{
+		client:   client,
+		detector: NewArrivalDetector(repo),
+		cfg:      cfg,
+	}
+}
+
+// Run starts the pipeline and blocks until ctx is cancelled.
+// Stop loading runs once at startup; vehicle polling then loops on PollInterval.
+func (r *PipelineRunner) Run(ctx context.Context) error {
+	log.Printf("pipeline: starting — routes=%v poll_interval=%v", r.cfg.RouteIDs, r.cfg.PollInterval)
+
+	if err := r.loadAllStops(ctx); err != nil {
+		// Non-fatal: log and continue. Pings for routes with missing stops are skipped.
+		log.Printf("pipeline: stop loading incomplete: %v", err)
+	}
+
+	ticker := time.NewTicker(r.cfg.PollInterval)
+	defer ticker.Stop()
+
+	// Poll immediately on start, then on each tick.
+	r.poll(ctx)
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("pipeline: shutting down")
+			return ctx.Err()
+		case <-ticker.C:
+			r.poll(ctx)
+		}
+	}
+}
+
+// poll fetches vehicle pings for all configured routes and feeds them through the detector.
+// The CTA API accepts up to 10 route IDs per call, so routes are batched automatically.
+func (r *PipelineRunner) poll(ctx context.Context) {
+	batches := chunkStrings(r.cfg.RouteIDs, 10)
+	for _, batch := range batches {
+		pings, err := r.client.GetVehicles(ctx, batch)
+		if err != nil {
+			log.Printf("pipeline: getvehicles error routes=%v: %v", batch, err)
+			continue
+		}
+		log.Printf("pipeline: received %d pings for routes %v", len(pings), batch)
+		for _, ping := range pings {
+			r.detector.ProcessPing(ctx, ping)
+		}
+	}
+}
+
+// loadAllStops fetches and caches stops for every configured route+direction combination.
+func (r *PipelineRunner) loadAllStops(ctx context.Context) error {
+	for _, routeID := range r.cfg.RouteIDs {
+		for _, dir := range r.cfg.Directions {
+			stops, err := r.client.GetStops(ctx, routeID, dir)
+			if err != nil {
+				log.Printf("pipeline: getstops route=%s dir=%s: %v", routeID, dir, err)
+				continue
+			}
+			r.detector.LoadStops(routeID, dir, stops)
+			log.Printf("pipeline: loaded %d stops route=%s dir=%s", len(stops), routeID, dir)
+		}
+	}
+	return nil
+}
+
+// chunkStrings splits a slice into sub-slices of at most size n.
+func chunkStrings(s []string, n int) [][]string {
+	var chunks [][]string
+	for len(s) > 0 {
+		if len(s) < n {
+			n = len(s)
+		}
+		chunks = append(chunks, s[:n])
+		s = s[n:]
+	}
+	return chunks
+}
