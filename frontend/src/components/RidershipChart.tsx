@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   LineChart,
   Line,
@@ -16,13 +16,20 @@ interface Props {
   height?: number
 }
 
-// One row per month in the chart, with weekday/saturday/sunday as columns.
 interface ChartRow {
   month: string
   weekday?: number
   saturday?: number
   sunday?: number
 }
+
+type WindowKey = 'all' | '5y' | '1y'
+
+const WINDOWS: { key: WindowKey; label: string }[] = [
+  { key: '1y',  label: 'Last year'    },
+  { key: '5y',  label: 'Last 5 years' },
+  { key: 'all', label: 'All time'     },
+]
 
 const LINE_CONFIG = [
   { key: 'weekday',  color: '#dc2626', label: 'Weekday'  },
@@ -33,6 +40,14 @@ const LINE_CONFIG = [
 function formatRides(value: number): string {
   if (value >= 1000) return `${(value / 1000).toFixed(1)}k`
   return value.toFixed(0)
+}
+
+function cutoffMonth(window: WindowKey): string | null {
+  if (window === 'all') return null
+  const now = new Date()
+  const years = window === '1y' ? 1 : 5
+  const cutoff = new Date(now.getFullYear() - years, now.getMonth(), 1)
+  return `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`
 }
 
 function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
@@ -52,23 +67,29 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
 }
 
 export default function RidershipChart({ records, height = 220 }: Props) {
-  const data = useMemo<ChartRow[]>(() => {
+  const [window, setWindow] = useState<WindowKey>('5y')
+
+  const allData = useMemo<ChartRow[]>(() => {
     const byMonth = new Map<string, ChartRow>()
     for (const r of records) {
       if (!byMonth.has(r.month)) byMonth.set(r.month, { month: r.month })
       const row = byMonth.get(r.month)!
       row[r.type] = Math.round(r.avgRides)
     }
-    // Sort chronologically
     return Array.from(byMonth.values()).sort((a, b) => a.month.localeCompare(b.month))
   }, [records])
 
-  // Determine which day types actually have data
+  const data = useMemo<ChartRow[]>(() => {
+    const cutoff = cutoffMonth(window)
+    if (!cutoff) return allData
+    return allData.filter(row => row.month >= cutoff)
+  }, [allData, window])
+
   const activeLines = LINE_CONFIG.filter(cfg =>
     records.some(r => r.type === cfg.key)
   )
 
-  if (data.length === 0) {
+  if (allData.length === 0) {
     return (
       <div className="flex items-center justify-center text-gray-500 text-sm" style={{ height }}>
         No data available
@@ -78,14 +99,31 @@ export default function RidershipChart({ records, height = 220 }: Props) {
 
   return (
     <div>
-      {/* Legend */}
-      <div className="flex gap-4 mb-3">
-        {activeLines.map(cfg => (
-          <div key={cfg.key} className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background: cfg.color }} />
-            <span className="text-xs text-gray-400 capitalize">{cfg.label}</span>
-          </div>
-        ))}
+      {/* Legend + window picker */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-4">
+          {activeLines.map(cfg => (
+            <div key={cfg.key} className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ background: cfg.color }} />
+              <span className="text-xs text-gray-400 capitalize">{cfg.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-1">
+          {WINDOWS.map(w => (
+            <button
+              key={w.key}
+              onClick={() => setWindow(w.key)}
+              className={`px-2.5 py-1 rounded-md text-xs transition-colors ${
+                window === w.key
+                  ? 'bg-gray-700 text-white'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
+              }`}
+            >
+              {w.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <ResponsiveContainer width="100%" height={height}>
