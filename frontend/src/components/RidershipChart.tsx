@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   LineChart,
   Line,
@@ -11,8 +11,18 @@ import {
 } from 'recharts'
 import type { RidershipDataPoint } from '../types/api'
 
+export type WindowKey = 'all' | '5y' | '1y'
+
+export const WINDOWS: { key: WindowKey; label: string }[] = [
+  { key: '1y',  label: 'Last year'    },
+  { key: '5y',  label: 'Last 5 years' },
+  { key: 'all', label: 'All time'     },
+]
+
 interface Props {
   records: RidershipDataPoint[]
+  window: WindowKey
+  onWindowChange: (w: WindowKey) => void
   height?: number
 }
 
@@ -22,14 +32,6 @@ interface ChartRow {
   saturday?: number
   sunday?: number
 }
-
-type WindowKey = 'all' | '5y' | '1y'
-
-const WINDOWS: { key: WindowKey; label: string }[] = [
-  { key: '1y',  label: 'Last year'    },
-  { key: '5y',  label: 'Last 5 years' },
-  { key: 'all', label: 'All time'     },
-]
 
 const LINE_CONFIG = [
   { key: 'weekday',  color: '#dc2626', label: 'Weekday'  },
@@ -42,12 +44,15 @@ function formatRides(value: number): string {
   return value.toFixed(0)
 }
 
-function cutoffMonth(window: WindowKey): string | null {
-  if (window === 'all') return null
-  const now = new Date()
-  const years = window === '1y' ? 1 : 5
-  const cutoff = new Date(now.getFullYear() - years, now.getMonth(), 1)
-  return `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`
+// Returns the cutoff month string relative to a given anchor month (the latest
+// month in the dataset), NOT relative to today. This ensures the window label
+// matches what's actually shown — the data may lag the current date by months.
+export function cutoffMonth(w: WindowKey, anchorMonth: string): string | null {
+  if (w === 'all') return null
+  const [year, mon] = anchorMonth.split('-').map(Number)
+  const years = w === '1y' ? 1 : 5
+  const cutoffYear = year - years
+  return `${cutoffYear}-${String(mon).padStart(2, '0')}`
 }
 
 function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
@@ -66,9 +71,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
   )
 }
 
-export default function RidershipChart({ records, height = 220 }: Props) {
-  const [window, setWindow] = useState<WindowKey>('5y')
-
+export default function RidershipChart({ records, window: w, onWindowChange, height = 220 }: Props) {
   const allData = useMemo<ChartRow[]>(() => {
     const byMonth = new Map<string, ChartRow>()
     for (const r of records) {
@@ -79,11 +82,15 @@ export default function RidershipChart({ records, height = 220 }: Props) {
     return Array.from(byMonth.values()).sort((a, b) => a.month.localeCompare(b.month))
   }, [records])
 
+  // Anchor to the latest month in the data, not today
+  const latestMonth = allData.length ? allData[allData.length - 1].month : ''
+
   const data = useMemo<ChartRow[]>(() => {
-    const cutoff = cutoffMonth(window)
+    if (!latestMonth) return allData
+    const cutoff = cutoffMonth(w, latestMonth)
     if (!cutoff) return allData
     return allData.filter(row => row.month >= cutoff)
-  }, [allData, window])
+  }, [allData, w, latestMonth])
 
   const activeLines = LINE_CONFIG.filter(cfg =>
     records.some(r => r.type === cfg.key)
@@ -99,7 +106,6 @@ export default function RidershipChart({ records, height = 220 }: Props) {
 
   return (
     <div>
-      {/* Legend + window picker */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex gap-4">
           {activeLines.map(cfg => (
@@ -110,17 +116,17 @@ export default function RidershipChart({ records, height = 220 }: Props) {
           ))}
         </div>
         <div className="flex items-center gap-1">
-          {WINDOWS.map(w => (
+          {WINDOWS.map(win => (
             <button
-              key={w.key}
-              onClick={() => setWindow(w.key)}
+              key={win.key}
+              onClick={() => onWindowChange(win.key)}
               className={`px-2.5 py-1 rounded-md text-xs transition-colors ${
-                window === w.key
+                w === win.key
                   ? 'bg-gray-700 text-white'
                   : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
               }`}
             >
-              {w.label}
+              {win.label}
             </button>
           ))}
         </div>
