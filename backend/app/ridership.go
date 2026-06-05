@@ -10,6 +10,8 @@ type RidershipRepository interface {
 	GetLatestMonth() (time.Time, error)
 	GetAvailableMonths() ([]time.Time, error)
 	GetByMonth(month time.Time, ridershipType business.RidershipType) (map[string]*business.RidershipRecord, error)
+	GetAllByRoute(routeExternalID string) ([]business.RidershipRecord, error)
+	GetSystemTotals() ([]business.RidershipRecord, error)
 	UpsertBatch(records []business.RidershipRecord) error
 }
 

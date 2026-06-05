@@ -24,6 +24,8 @@ func (a *API) registerRoutes() {
 		v1.POST("/routes/import-segments", a.handleImportRouteSegments)
 		v1.POST("/routes/:externalId/segments", a.handleImportRouteSegmentsJSON)
 		v1.GET("/ridership/months", a.handleGetRidershipMonths)
+		v1.GET("/ridership/system", a.handleGetSystemRidership)
+		v1.GET("/ridership/routes/:externalId", a.handleGetRouteRidership)
 		v1.POST("/ridership/import", a.handleImportRidership)
 	}
 }
@@ -64,8 +66,6 @@ func (a *API) handleImportRouteSegments(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
-// handleImportRouteSegmentsJSON accepts a saved getpatterns JSON body (bustime-response shape)
-// and imports segments for :externalId using the first direction only.
 func (a *API) handleImportRouteSegmentsJSON(c *gin.Context) {
 	externalID := c.Param("externalId")
 	var body cta.GetRoutePatternResponse
@@ -85,8 +85,6 @@ func (a *API) handleImportRouteSegmentsJSON(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "segments": len(segments)})
 }
 
-// resolveMonth returns the parsed month from the query string, or falls back to
-// the latest available ridership month. Returns the zero time if neither is available.
 func resolveMonth(monthParam string, getLatest func() (time.Time, error)) (time.Time, error) {
 	if monthParam != "" {
 		parsed, err := time.Parse("2006-01", monthParam)
@@ -98,14 +96,11 @@ func resolveMonth(monthParam string, getLatest func() (time.Time, error)) (time.
 
 	latest, err := getLatest()
 	if err != nil {
-		// No ridership data available — return zero time so routes are still
-		// returned but with nil ridership fields.
 		return time.Time{}, nil
 	}
 	return latest, nil
 }
 
-// resolveRidershipType validates the type param and defaults to weekday.
 func resolveRidershipType(typeParam string) (business.RidershipType, error) {
 	if typeParam == "" {
 		return business.RidershipTypeWeekday, nil

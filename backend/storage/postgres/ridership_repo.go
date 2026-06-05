@@ -57,12 +57,69 @@ func (r *RidershipRepo) GetByMonth(month time.Time, ridershipType business.Rider
 	return result, nil
 }
 
+// GetAllByRoute returns all ridership records for a single route across all months and types,
+// ordered chronologically.
+func (r *RidershipRepo) GetAllByRoute(routeExternalID string) ([]business.RidershipRecord, error) {
+	var rows []ridershipRow
+	err := r.db.Model(&ridershipModel{}).
+		Select("routes.external_id, ridership.month_beginning, ridership.type, ridership.avg_rides").
+		Joins("JOIN routes ON routes.id = ridership.route_id AND routes.deleted_at IS NULL").
+		Where("routes.external_id = ? AND ridership.deleted_at IS NULL", routeExternalID).
+		Order("ridership.month_beginning ASC, ridership.type ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	records := make([]business.RidershipRecord, len(rows))
+	for i, row := range rows {
+		records[i] = business.RidershipRecord{
+			RouteExternalID: row.ExternalID,
+			MonthBeginning:  row.MonthBeginning,
+			Type:            business.RidershipType(row.Type),
+			AvgRides:        row.AvgRides,
+		}
+	}
+	return records, nil
+}
+
+// GetSystemTotals returns ridership summed across all routes, grouped by month and type,
+// ordered chronologically.
+func (r *RidershipRepo) GetSystemTotals() ([]business.RidershipRecord, error) {
+	type systemRow struct {
+		MonthBeginning time.Time
+		Type           string
+		AvgRides       float64
+	}
+
+	var rows []systemRow
+	err := r.db.Model(&ridershipModel{}).
+		Select("ridership.month_beginning, ridership.type, SUM(ridership.avg_rides) as avg_rides").
+		Joins("JOIN routes ON routes.id = ridership.route_id AND routes.deleted_at IS NULL").
+		Where("ridership.deleted_at IS NULL").
+		Group("ridership.month_beginning, ridership.type").
+		Order("ridership.month_beginning ASC, ridership.type ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	records := make([]business.RidershipRecord, len(rows))
+	for i, row := range rows {
+		records[i] = business.RidershipRecord{
+			MonthBeginning: row.MonthBeginning,
+			Type:           business.RidershipType(row.Type),
+			AvgRides:       row.AvgRides,
+		}
+	}
+	return records, nil
+}
+
 func (r *RidershipRepo) UpsertBatch(records []business.RidershipRecord) error {
 	if len(records) == 0 {
 		return nil
 	}
 
-	// Collect unique external IDs and build a lookup map to route PKs.
 	idSet := make(map[string]struct{}, len(records))
 	for _, rec := range records {
 		idSet[rec.RouteExternalID] = struct{}{}
@@ -86,7 +143,7 @@ func (r *RidershipRepo) UpsertBatch(records []business.RidershipRecord) error {
 	for _, rec := range records {
 		routeID, ok := routeIDByExternal[rec.RouteExternalID]
 		if !ok {
-			continue // skip records for routes not in the DB
+			continue
 		}
 		models = append(models, ridershipModel{
 			RouteID:        routeID,

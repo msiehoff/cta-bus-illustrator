@@ -26,6 +26,38 @@ func (a *API) handleGetRidershipMonths(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"months": formatted})
 }
 
+// handleGetSystemRidership returns total ridership summed across all routes,
+// grouped by month and type.
+//
+// GET /api/v1/ridership/system
+func (a *API) handleGetSystemRidership(c *gin.Context) {
+	records, err := a.routeService.GetSystemRidership()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, toRidershipResponse(records))
+}
+
+// handleGetRouteRidership returns all ridership records for a single route across
+// all months and types.
+//
+// GET /api/v1/ridership/routes/:externalId
+func (a *API) handleGetRouteRidership(c *gin.Context) {
+	externalID := c.Param("externalId")
+	if externalID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "externalId is required"})
+		return
+	}
+
+	records, err := a.routeService.GetRouteRidership(externalID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, toRidershipResponse(records))
+}
+
 func (a *API) handleImportRidership(c *gin.Context) {
 	file, _, err := c.Request.FormFile("file")
 	if err != nil {
@@ -35,10 +67,8 @@ func (a *API) handleImportRidership(c *gin.Context) {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
-	// reader.Comma = '\t'
 	reader.LazyQuotes = true
 
-	// skip header row
 	if _, err := reader.Read(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read header row"})
 		return
@@ -54,7 +84,7 @@ func (a *API) handleImportRidership(c *gin.Context) {
 		lineNum++
 		row, err := reader.Read()
 		if err != nil {
-			break // EOF
+			break
 		}
 		if len(row) < 6 {
 			parseErrs = append(parseErrs, fmt.Sprintf("line %d: expected 6+ columns, got %d", lineNum, len(row)))
@@ -104,7 +134,6 @@ func (a *API) handleImportRidership(c *gin.Context) {
 	})
 }
 
-// parseRides strips commas and parses a ridership number (e.g. "1,126" → 1126).
 func parseRides(s string) (float64, error) {
 	s = strings.ReplaceAll(strings.TrimSpace(s), ",", "")
 	return strconv.ParseFloat(s, 64)
