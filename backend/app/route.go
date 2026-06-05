@@ -57,6 +57,14 @@ func (s *RouteService) GetAvailableRidershipMonths() ([]time.Time, error) {
 	return s.ridershipRepo.GetAvailableMonths()
 }
 
+func (s *RouteService) GetRouteRidership(routeExternalID string) ([]business.RidershipRecord, error) {
+	return s.ridershipRepo.GetAllByRoute(routeExternalID)
+}
+
+func (s *RouteService) GetSystemRidership() ([]business.RidershipRecord, error) {
+	return s.ridershipRepo.GetSystemTotals()
+}
+
 func (s *RouteService) ImportRidership(records []business.RidershipRecord) error {
 	return s.ridershipRepo.UpsertBatch(records)
 }

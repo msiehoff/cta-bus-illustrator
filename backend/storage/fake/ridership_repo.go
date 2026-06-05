@@ -36,3 +36,21 @@ func (r *RidershipRepo) GetByMonth(_ time.Time, ridershipType business.Ridership
 		},
 	}, nil
 }
+
+func (r *RidershipRepo) GetAllByRoute(routeExternalID string) ([]business.RidershipRecord, error) {
+	month := time.Date(2025, 11, 1, 0, 0, 0, 0, time.UTC)
+	return []business.RidershipRecord{
+		{RouteExternalID: routeExternalID, MonthBeginning: month, Type: business.RidershipTypeWeekday, AvgRides: 8500},
+		{RouteExternalID: routeExternalID, MonthBeginning: month, Type: business.RidershipTypeSaturday, AvgRides: 5000},
+		{RouteExternalID: routeExternalID, MonthBeginning: month, Type: business.RidershipTypeSunday, AvgRides: 3500},
+	}, nil
+}
+
+func (r *RidershipRepo) GetSystemTotals() ([]business.RidershipRecord, error) {
+	month := time.Date(2025, 11, 1, 0, 0, 0, 0, time.UTC)
+	return []business.RidershipRecord{
+		{MonthBeginning: month, Type: business.RidershipTypeWeekday, AvgRides: 847200},
+		{MonthBeginning: month, Type: business.RidershipTypeSaturday, AvgRides: 412100},
+		{MonthBeginning: month, Type: business.RidershipTypeSunday, AvgRides: 289400},
+	}, nil
+}

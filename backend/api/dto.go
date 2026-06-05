@@ -1,6 +1,11 @@
 package api
 
-import "github.com/msiehoff/cta-bus-illustrator/backend/app"
+import (
+	"github.com/msiehoff/cta-bus-illustrator/backend/app"
+	"github.com/msiehoff/cta-bus-illustrator/backend/business"
+)
+
+// --- Routes / map response ---
 
 type routeProperties struct {
 	RouteID   string   `json:"routeId"`
@@ -51,4 +56,28 @@ func toGetRoutesResponse(routes []app.RouteWithRidership) GetRoutesResponse {
 		}
 	}
 	return GetRoutesResponse{Type: "FeatureCollection", Features: features}
+}
+
+// --- Ridership time-series responses ---
+
+type RidershipDataPoint struct {
+	Month    string  `json:"month"`    // "2024-01"
+	Type     string  `json:"type"`     // "weekday" | "saturday" | "sunday"
+	AvgRides float64 `json:"avgRides"`
+}
+
+type GetRidershipResponse struct {
+	Records []RidershipDataPoint `json:"records"`
+}
+
+func toRidershipResponse(records []business.RidershipRecord) GetRidershipResponse {
+	points := make([]RidershipDataPoint, len(records))
+	for i, r := range records {
+		points[i] = RidershipDataPoint{
+			Month:    r.MonthBeginning.Format("2006-01"),
+			Type:     string(r.Type),
+			AvgRides: r.AvgRides,
+		}
+	}
+	return GetRidershipResponse{Records: points}
 }
