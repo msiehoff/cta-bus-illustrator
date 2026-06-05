@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useRouteRidership } from '../hooks/useRouteRidership'
-import RidershipChart, { type WindowKey, cutoffMonth, WINDOWS } from '../components/RidershipChart'
+import RidershipChart, { type WindowKey, cutoffMonth } from '../components/RidershipChart'
 import StatCard from '../components/StatCard'
 import type { RidershipType } from '../types/api'
 
