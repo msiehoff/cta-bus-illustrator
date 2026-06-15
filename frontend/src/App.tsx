@@ -5,22 +5,17 @@ import RouteMap from './components/RouteMap'
 import SystemOverview from './pages/SystemOverview'
 import RoutesPage from './pages/RoutesPage'
 import RoutePage from './pages/RoutePage'
-
-const GA_MEASUREMENT_ID = 'G-M6JMBQS6EJ'
-
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void
-  }
-}
+import { initAnalytics, trackPageView } from './lib/analytics'
 
 const Analytics = () => {
   const location = useLocation()
 
   useEffect(() => {
-    window.gtag?.('config', GA_MEASUREMENT_ID, {
-      page_path: location.pathname + location.search,
-    })
+    initAnalytics()
+  }, [])
+
+  useEffect(() => {
+    trackPageView(location.pathname + location.search)
   }, [location])
 
   return null
