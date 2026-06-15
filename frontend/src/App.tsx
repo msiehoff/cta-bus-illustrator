@@ -1,12 +1,29 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import RouteMap from './components/RouteMap'
 import SystemOverview from './pages/SystemOverview'
 import RoutesPage from './pages/RoutesPage'
 import RoutePage from './pages/RoutePage'
+import { initAnalytics, trackPageView } from './lib/analytics'
+
+const Analytics = () => {
+  const location = useLocation()
+
+  useEffect(() => {
+    initAnalytics()
+  }, [])
+
+  useEffect(() => {
+    trackPageView(location.pathname + location.search)
+  }, [location])
+
+  return null
+}
 
 const App = () => (
   <BrowserRouter>
+    <Analytics />
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
       <Sidebar />
       <main className="flex-1 min-w-0 overflow-y-auto">
