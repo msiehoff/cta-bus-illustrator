@@ -11,6 +11,7 @@ import RecoveryDistributionChart from '../components/RecoveryDistributionChart'
 import RecoveryScatterChart from '../components/RecoveryScatterChart'
 import SeasonalityChart from '../components/SeasonalityChart'
 import TopMoversPanel from '../components/TopMoversPanel'
+import RidershipDistributionChart from '../components/RidershipDistributionChart'
 import {
   buildRecoveryDistribution,
   buildRecoveryScatter,
@@ -115,6 +116,20 @@ const SystemOverview = () => {
       )}
 
       {comparison && <TopMoversPanel routes={comparison.routes} />}
+
+      {comparison && (
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+          <h2 className="text-sm font-medium text-white mb-1">Route ridership distribution</h2>
+          <p className="text-xs text-gray-500 mb-2">
+            How avg daily {ridershipType} ridership is spread across the network · {formatMonth(comparison.currentMonth)}
+            {' · '}y-axis = routes per ridership band
+          </p>
+          <RidershipDistributionChart
+            routes={comparison.routes}
+            ridershipType={ridershipType}
+          />
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-3 mb-5">
         <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">

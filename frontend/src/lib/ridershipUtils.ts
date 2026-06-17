@@ -300,3 +300,51 @@ export const getSnapshotForMonth = (
     sunday: get('sunday'),
   }
 }
+
+export interface RidershipDensityPoint {
+  ridership: number
+  routeCount: number
+  rangeLabel: string
+}
+
+export const buildRidershipDensity = (
+  routes: { current: number }[],
+  binCount = 16,
+): RidershipDensityPoint[] => {
+  const values = routes.map(r => r.current).filter(v => v > 0)
+  if (!values.length) return []
+  if (values.length === 1) {
+    return [{ ridership: values[0], routeCount: 1, rangeLabel: formatRides(values[0]) }]
+  }
+
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const binWidth = (max - min) / binCount
+
+  const bins = Array.from({ length: binCount }, (_, i) => {
+    const binMin = min + i * binWidth
+    const binMax = min + (i + 1) * binWidth
+    return { binMin, binMax, routeCount: 0 }
+  })
+
+  for (const value of values) {
+    let index = Math.floor((value - min) / binWidth)
+    if (index >= binCount) index = binCount - 1
+    bins[index].routeCount++
+  }
+
+  return bins.map(bin => ({
+    ridership: (bin.binMin + bin.binMax) / 2,
+    routeCount: bin.routeCount,
+    rangeLabel: `${formatRides(bin.binMin)}–${formatRides(bin.binMax)}`,
+  }))
+}
+
+export const getRidershipPercentile = (
+  routes: { current: number }[],
+  value: number,
+): number => {
+  if (!routes.length) return 0
+  const below = routes.filter(r => r.current < value).length
+  return Math.round((below / routes.length) * 100)
+}

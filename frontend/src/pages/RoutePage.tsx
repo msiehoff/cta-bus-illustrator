@@ -10,6 +10,7 @@ import RecoveryBanner from '../components/RecoveryBanner'
 import RouteRecoveryTable from '../components/RouteRecoveryTable'
 import RidershipFilters from '../components/RidershipFilters'
 import RouteContextPanel from '../components/RouteContextPanel'
+import RidershipDistributionChart from '../components/RidershipDistributionChart'
 import SeasonalityChart from '../components/SeasonalityChart'
 import WeekendShareChart from '../components/WeekendShareChart'
 import {
@@ -117,6 +118,21 @@ const RoutePage = () => {
           ridershipType={ridershipType}
           selectedMonth={selectedMonth}
         />
+      )}
+
+      {comparison && (
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+          <h2 className="text-sm font-medium text-white mb-1">Where this route falls</h2>
+          <p className="text-xs text-gray-500 mb-2">
+            Network ridership distribution · {formatMonth(comparison.currentMonth)} · {ridershipType}
+          </p>
+          <RidershipDistributionChart
+            routes={comparison.routes}
+            highlightRouteId={externalId}
+            highlightRouteName={routeName}
+            ridershipType={ridershipType}
+          />
+        </div>
       )}
 
       {latest && (
