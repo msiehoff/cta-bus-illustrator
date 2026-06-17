@@ -140,7 +140,7 @@ const RoutePage = () => {
 
       {recovery && weekdayRecovery && (
         <RecoveryBanner
-          title="Route recovery"
+          title="Route ridership vs pre-pandemic"
           currentMonth={recovery.currentMonth}
           benchmarkMonth={recovery.benchmarkMonth}
           current={weekdayRecovery.current}
@@ -178,15 +178,21 @@ const RoutePage = () => {
         {loading && <div className="text-gray-500 text-sm py-10 text-center">Loading…</div>}
         {error && <div className="text-red-400 text-sm py-10 text-center">Failed to load: {error}</div>}
         {!loading && !error && (
-          <RidershipChart
-            records={records}
-            window={window}
-            onWindowChange={setWindow}
-            height={220}
-            overlayRecords={systemRecords}
-            overlayLabel="System avg"
-            highlightType={ridershipType}
-          />
+          <>
+            <RidershipChart
+              records={records}
+              window={window}
+              onWindowChange={setWindow}
+              height={220}
+              overlayRecords={systemRecords}
+              overlayLabel="System avg"
+              highlightType={ridershipType}
+            />
+            <p className="text-[10px] text-gray-600 mt-2">
+              Dashed line = system average. Shaded area = pandemic period (Mar 2020 – Dec 2022).
+              Pre-pandemic benchmark uses the same calendar month in 2019.
+            </p>
+          </>
         )}
       </div>
 

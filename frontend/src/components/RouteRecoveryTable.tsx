@@ -35,7 +35,7 @@ const RouteRecoveryTable = ({
     <div className="px-5 py-3 border-b border-gray-800">
       <h2 className="text-sm font-medium text-white">Ridership comparison</h2>
       <p className="text-xs text-gray-500 mt-0.5">
-        Same calendar month comparisons · {formatMonth(currentMonth)}
+        Same calendar month comparisons · {formatMonth(currentMonth)} · pre-pandemic = same month in 2019
       </p>
     </div>
     <div className="overflow-x-auto">
@@ -47,16 +47,16 @@ const RouteRecoveryTable = ({
               Now
               <span className="block text-[10px] text-gray-600 font-normal">{formatMonth(currentMonth)}</span>
             </th>
-            <th className="text-right px-3 py-2 font-normal">
-              vs 2019
+            <th className="text-right px-3 py-2 font-normal" title="Same month in 2019, before the pandemic">
+              vs pre-pandemic
               <span className="block text-[10px] text-gray-600 font-normal">{formatMonth(benchmarkMonth)}</span>
             </th>
-            <th className="text-right px-3 py-2 font-normal hidden sm:table-cell">
-              1y
+            <th className="text-right px-3 py-2 font-normal hidden sm:table-cell" title="Change vs same month one year ago">
+              1y change
               <span className="block text-[10px] text-gray-600 font-normal">{formatMonth(yearAgoMonth)}</span>
             </th>
-            <th className="text-right px-5 py-2 font-normal hidden sm:table-cell">
-              5y
+            <th className="text-right px-5 py-2 font-normal hidden sm:table-cell" title="Change vs same month five years ago">
+              5y change
               <span className="block text-[10px] text-gray-600 font-normal">{formatMonth(fiveYearsAgoMonth)}</span>
             </th>
           </tr>

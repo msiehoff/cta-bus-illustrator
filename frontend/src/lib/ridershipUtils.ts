@@ -28,6 +28,15 @@ export const formatPct = (pct: number): string =>
 export const formatRecoveryPct = (pct: number): string =>
   `${pct.toFixed(0)}%`
 
+export const formatRecoveryPlainEnglish = (pct: number): string => {
+  if (pct >= 100) return 'Back to or above pre-pandemic levels'
+  const tens = Math.round(pct / 10)
+  if (tens <= 1) return 'Roughly 1 in 10 pre-pandemic riders'
+  return `About ${tens} in 10 pre-pandemic riders`
+}
+
+export const PANDEMIC_PERIOD = { start: '2020-03', end: '2022-12' } as const
+
 export const comparisonMonth = (latestMonth: string, yearsBack: number): string => {
   const [year, mon] = latestMonth.split('-').map(Number)
   return `${year - yearsBack}-${String(mon).padStart(2, '0')}`
@@ -73,7 +82,7 @@ export const preCovidTrend = (
   const pct = recoveryPct(current, baseline)
   if (pct == null) return {}
   return {
-    trend: `${formatRecoveryPct(pct)} of ${formatMonth(benchmark)}`,
+    trend: `${formatRecoveryPct(pct)} vs pre-pandemic (${formatMonth(benchmark)})`,
     trendUp: pct >= 100 ? true : pct < 70 ? false : undefined,
   }
 }

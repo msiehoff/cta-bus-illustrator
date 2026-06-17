@@ -105,7 +105,6 @@ const SystemOverview = () => {
 
       {comparison && (
         <RecoveryBanner
-          title="System recovery"
           currentMonth={comparison.currentMonth}
           benchmarkMonth={comparison.benchmarkMonth}
           current={comparison.systemCurrent}
@@ -119,13 +118,13 @@ const SystemOverview = () => {
 
       <div className="grid lg:grid-cols-2 gap-3 mb-5">
         <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
-          <h2 className="text-sm font-medium text-white mb-1">Recovery distribution</h2>
-          <p className="text-xs text-gray-500 mb-4">Routes grouped by pre-COVID recovery %</p>
+          <h2 className="text-sm font-medium text-white mb-1">Pre-pandemic recovery distribution</h2>
+          <p className="text-xs text-gray-500 mb-4">Routes grouped by ridership vs same month in 2019</p>
           <RecoveryDistributionChart data={distribution} />
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
-          <h2 className="text-sm font-medium text-white mb-1">Ridership vs recovery</h2>
-          <p className="text-xs text-gray-500 mb-4">Click a dot to open route detail</p>
+          <h2 className="text-sm font-medium text-white mb-1">Ridership vs pre-pandemic</h2>
+          <p className="text-xs text-gray-500 mb-4">Each dot is a route · click to open detail</p>
           <RecoveryScatterChart data={scatter} />
         </div>
       </div>
@@ -153,7 +152,7 @@ const SystemOverview = () => {
         )}
         {sinceLabel && (
           <p className="text-[10px] text-gray-600 mt-2">
-            Chart window: {sinceLabel}. Pre-COVID benchmark uses same calendar month in 2019.
+            Chart window: {sinceLabel}. Pre-pandemic benchmark = same calendar month in 2019.
           </p>
         )}
       </div>

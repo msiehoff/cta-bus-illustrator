@@ -7,9 +7,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceArea,
   type TooltipProps,
 } from 'recharts'
 import type { RidershipDataPoint, RidershipType } from '../types/api'
+import { PANDEMIC_PERIOD } from '../lib/ridershipUtils'
 
 export type WindowKey = 'all' | '5y' | '1y'
 
@@ -27,6 +29,7 @@ interface Props {
   overlayRecords?: RidershipDataPoint[]
   overlayLabel?: string
   highlightType?: RidershipType
+  showPandemicBand?: boolean
 }
 
 interface ChartRow {
@@ -83,6 +86,7 @@ export default function RidershipChart({
   overlayRecords,
   overlayLabel = 'System avg',
   highlightType,
+  showPandemicBand = true,
 }: Props) {
   const allData = useMemo<ChartRow[]>(() => {
     const byMonth = new Map<string, ChartRow>()
@@ -120,6 +124,13 @@ export default function RidershipChart({
 
   const hasOverlay = Boolean(highlightType && overlayRecords?.some(r => r.type === highlightType))
 
+  const pandemicBandVisible = useMemo(() => {
+    if (!showPandemicBand || !data.length) return false
+    const first = data[0].month
+    const last = data[data.length - 1].month
+    return last >= PANDEMIC_PERIOD.start && first <= PANDEMIC_PERIOD.end
+  }, [data, showPandemicBand])
+
   if (allData.length === 0) {
     return (
       <div className="flex items-center justify-center text-gray-500 text-sm" style={{ height }}>
@@ -142,6 +153,12 @@ export default function RidershipChart({
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-0.5 bg-gray-400" />
               <span className="text-xs text-gray-400">{overlayLabel}</span>
+            </div>
+          )}
+          {pandemicBandVisible && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm bg-gray-700/80" />
+              <span className="text-xs text-gray-400">Pandemic period</span>
             </div>
           )}
         </div>
@@ -180,6 +197,15 @@ export default function RidershipChart({
             width={44}
           />
           <Tooltip content={<CustomTooltip />} />
+          {pandemicBandVisible && (
+            <ReferenceArea
+              x1={PANDEMIC_PERIOD.start}
+              x2={PANDEMIC_PERIOD.end}
+              strokeOpacity={0}
+              fill="#374151"
+              fillOpacity={0.35}
+            />
+          )}
           {visibleLines.map(cfg => (
             <Line
               key={cfg.key}

@@ -97,11 +97,13 @@ const RoutesComparisonTable = ({
     align = 'left',
     className,
     children,
+    title,
   }: {
     column: SortColumn
     align?: 'left' | 'right'
     className?: string
     children: ReactNode
+    title?: string
   }) => {
     const active = sort.column === column
     return (
@@ -113,6 +115,7 @@ const RoutesComparisonTable = ({
         <button
           type="button"
           onClick={() => toggleSort(column)}
+          title={title}
           className={twMerge(
             'inline-flex items-center gap-1 transition-colors hover:text-gray-300',
             align === 'right' && 'flex-row-reverse',
@@ -161,14 +164,14 @@ const RoutesComparisonTable = ({
                 <SortableHeader column="current" align="right">
                   Now
                 </SortableHeader>
-                <SortableHeader column="recovery" align="right">
-                  vs 2019
+                <SortableHeader column="recovery" align="right" title="Same month in 2019, before the pandemic">
+                  vs pre-pandemic
                 </SortableHeader>
-                <SortableHeader column="yearAgo" align="right" className="hidden sm:table-cell">
-                  1y
+                <SortableHeader column="yearAgo" align="right" className="hidden sm:table-cell" title="Change vs same month one year ago">
+                  1y change
                 </SortableHeader>
-                <SortableHeader column="fiveYear" align="right" className="hidden sm:table-cell pr-5">
-                  5y
+                <SortableHeader column="fiveYear" align="right" className="hidden sm:table-cell pr-5" title="Change vs same month five years ago">
+                  5y change
                 </SortableHeader>
               </tr>
             </thead>

@@ -39,7 +39,6 @@ const RoutesPage = () => {
 
       {data && (
         <RecoveryBanner
-          title="System recovery"
           currentMonth={data.currentMonth}
           benchmarkMonth={data.benchmarkMonth}
           current={data.systemCurrent}

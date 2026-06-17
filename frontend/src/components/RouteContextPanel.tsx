@@ -85,7 +85,7 @@ const RouteContextPanel = ({
             </div>
             {currentRoute.recoveryPct != null && pairedRoute.recoveryPct != null && (
               <span className={`text-xs ${recoveryColorClass((currentRoute.recoveryPct + pairedRoute.recoveryPct) / 2)}`}>
-                {formatRecoveryPct((currentRoute.recoveryPct + pairedRoute.recoveryPct) / 2)} avg recovery
+                {formatRecoveryPct((currentRoute.recoveryPct + pairedRoute.recoveryPct) / 2)} avg vs pre-pandemic
               </span>
             )}
           </div>

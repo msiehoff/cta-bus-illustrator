@@ -31,7 +31,7 @@ const RecoveryScatterChart = ({ data, height = 220 }: Props) => {
   if (!data.length) {
     return (
       <div className="flex items-center justify-center text-gray-500 text-sm" style={{ height }}>
-        No recovery data available
+        No pre-pandemic comparison data available
       </div>
     )
   }
@@ -52,7 +52,7 @@ const RecoveryScatterChart = ({ data, height = 220 }: Props) => {
         <YAxis
           type="number"
           dataKey="recoveryPct"
-          name="Recovery"
+          name="vs pre-pandemic"
           domain={yDomain}
           tickFormatter={v => `${v}%`}
           tick={{ fill: '#9ca3af', fontSize: 11 }}
@@ -70,7 +70,7 @@ const RecoveryScatterChart = ({ data, height = 220 }: Props) => {
               <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs shadow-lg">
                 <p className="text-white font-medium">{point.routeName}</p>
                 <p className="text-gray-400 mt-1">{formatRides(point.current)} riders</p>
-                <p className="text-gray-400">{point.recoveryPct.toFixed(0)}% of pre-COVID</p>
+                <p className="text-gray-400">{point.recoveryPct.toFixed(0)}% of pre-pandemic</p>
               </div>
             )
           }}

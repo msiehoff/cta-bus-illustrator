@@ -18,7 +18,7 @@ const RecoveryDistributionChart = ({ data, height = 180 }: Props) => {
   if (!data.some(d => d.count > 0)) {
     return (
       <div className="flex items-center justify-center text-gray-500 text-sm" style={{ height }}>
-        No recovery data available
+        No pre-pandemic comparison data available
       </div>
     )
   }
