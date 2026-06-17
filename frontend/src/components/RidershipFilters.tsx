@@ -1,5 +1,5 @@
 import type { RidershipType } from '../types/api'
-import { formatMonth } from '../lib/ridershipUtils'
+import MonthSelector from './MonthSelector'
 
 const RIDERSHIP_TYPES: { value: RidershipType; label: string }[] = [
   { value: 'weekday', label: 'Weekday' },
@@ -27,7 +27,7 @@ const RidershipFilters = ({
   onMonthChange,
   onTypeChange,
 }: Props) => (
-  <div className="flex flex-wrap items-end gap-3 mb-5">
+  <div className="flex flex-wrap items-end gap-4 mb-5">
     <div>
       <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5">
         Day type
@@ -42,21 +42,12 @@ const RidershipFilters = ({
         ))}
       </select>
     </div>
-    <div>
-      <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5">
-        Month
-      </label>
-      <select
-        value={selectedMonth ?? ''}
-        onChange={e => onMonthChange(e.target.value)}
-        disabled={monthsLoading || !months.length}
-        className={selectClass}
-      >
-        {months.map(month => (
-          <option key={month} value={month}>{formatMonth(month)}</option>
-        ))}
-      </select>
-    </div>
+    <MonthSelector
+      months={months}
+      selectedMonth={selectedMonth}
+      onMonthChange={onMonthChange}
+      disabled={monthsLoading || !months.length}
+    />
   </div>
 )
 
