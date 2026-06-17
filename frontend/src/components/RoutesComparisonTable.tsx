@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { twMerge } from 'tailwind-merge'
 import {
   formatPct,
   formatRecoveryPct,
@@ -8,7 +9,12 @@ import {
 } from '../lib/ridershipUtils'
 import type { RouteComparison } from '../types/api'
 
-type SortKey = 'ridership' | 'recovery'
+type SortColumn = 'route' | 'current' | 'recovery' | 'yearAgo' | 'fiveYear'
+
+interface SortState {
+  column: SortColumn
+  dir: 'asc' | 'desc'
+}
 
 interface Props {
   routes: RouteComparison[]
@@ -16,6 +22,17 @@ interface Props {
   showHeader?: boolean
   search?: string
   onSearchChange?: (value: string) => void
+}
+
+const compareNullable = (
+  a: number | undefined,
+  b: number | undefined,
+  dir: 'asc' | 'desc',
+): number => {
+  if (a == null && b == null) return 0
+  if (a == null) return 1
+  if (b == null) return -1
+  return dir === 'asc' ? a - b : b - a
 }
 
 const RoutesComparisonTable = ({
@@ -26,7 +43,14 @@ const RoutesComparisonTable = ({
   onSearchChange,
 }: Props) => {
   const navigate = useNavigate()
-  const [sortBy, setSortBy] = useState<SortKey>('ridership')
+  const [sort, setSort] = useState<SortState>({ column: 'current', dir: 'desc' })
+
+  const toggleSort = (column: SortColumn) =>
+    setSort(prev =>
+      prev.column === column
+        ? { column, dir: prev.dir === 'desc' ? 'asc' : 'desc' }
+        : { column, dir: column === 'route' ? 'asc' : 'desc' },
+    )
 
   const filtered = useMemo(
     () => routes.filter(r =>
@@ -38,13 +62,25 @@ const RoutesComparisonTable = ({
 
   const sorted = useMemo(() => {
     const copy = [...filtered]
-    if (sortBy === 'recovery') {
-      copy.sort((a, b) => (b.recoveryPct ?? -1) - (a.recoveryPct ?? -1))
-    } else {
-      copy.sort((a, b) => b.current - a.current)
-    }
+    const { column, dir } = sort
+    const factor = dir === 'asc' ? 1 : -1
+
+    copy.sort((a, b) => {
+      switch (column) {
+        case 'route':
+          return a.routeName.localeCompare(b.routeName) * factor
+        case 'current':
+          return (a.current - b.current) * factor
+        case 'recovery':
+          return compareNullable(a.recoveryPct, b.recoveryPct, dir)
+        case 'yearAgo':
+          return compareNullable(a.yearAgoPct, b.yearAgoPct, dir)
+        case 'fiveYear':
+          return compareNullable(a.fiveYearPct, b.fiveYearPct, dir)
+      }
+    })
     return copy
-  }, [filtered, sortBy])
+  }, [filtered, sort])
 
   const formatDelta = (pct: number | undefined) => {
     if (pct == null) return <span className="text-gray-600">—</span>
@@ -56,29 +92,49 @@ const RoutesComparisonTable = ({
     )
   }
 
+  const SortableHeader = ({
+    column,
+    align = 'left',
+    className,
+    children,
+  }: {
+    column: SortColumn
+    align?: 'left' | 'right'
+    className?: string
+    children: ReactNode
+  }) => {
+    const active = sort.column === column
+    return (
+      <th className={twMerge(
+        'px-3 py-2 font-normal',
+        align === 'right' && 'text-right',
+        className,
+      )}>
+        <button
+          type="button"
+          onClick={() => toggleSort(column)}
+          className={twMerge(
+            'inline-flex items-center gap-1 transition-colors hover:text-gray-300',
+            align === 'right' && 'flex-row-reverse',
+            active ? 'text-gray-300' : 'text-gray-500',
+          )}
+        >
+          {children}
+          {active && (
+            <span className="text-[10px] text-gray-400" aria-hidden>
+              {sort.dir === 'desc' ? '↓' : '↑'}
+            </span>
+          )}
+        </button>
+      </th>
+    )
+  }
+
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
       {showHeader && (
         <div className="px-5 py-3 border-b border-gray-800 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500">{filtered.length} routes</span>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-gray-600">Sort:</span>
-              {(['ridership', 'recovery'] as const).map(key => (
-                <button
-                  key={key}
-                  onClick={() => setSortBy(key)}
-                  className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
-                    sortBy === key
-                      ? 'bg-gray-700 text-white'
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  {key === 'ridership' ? 'Ridership' : 'Recovery'}
-                </button>
-              ))}
-            </div>
-          </div>
+          <span className="text-xs text-gray-500">{filtered.length} routes</span>
           {onSearchChange && (
             <input
               type="text"
@@ -97,13 +153,23 @@ const RoutesComparisonTable = ({
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[32rem]">
             <thead>
-              <tr className="bg-gray-800/50 text-xs text-gray-500">
-                <th className="text-left px-5 py-2 font-normal w-10">#</th>
-                <th className="text-left px-3 py-2 font-normal">Route</th>
-                <th className="text-right px-3 py-2 font-normal">Now</th>
-                <th className="text-right px-3 py-2 font-normal">vs 2019</th>
-                <th className="text-right px-3 py-2 font-normal hidden sm:table-cell">1y</th>
-                <th className="text-right px-5 py-2 font-normal hidden sm:table-cell">5y</th>
+              <tr className="bg-gray-800/50 text-xs">
+                <th className="text-left px-5 py-2 font-normal text-gray-500 w-10">#</th>
+                <SortableHeader column="route" className="text-left px-3">
+                  Route
+                </SortableHeader>
+                <SortableHeader column="current" align="right">
+                  Now
+                </SortableHeader>
+                <SortableHeader column="recovery" align="right">
+                  vs 2019
+                </SortableHeader>
+                <SortableHeader column="yearAgo" align="right" className="hidden sm:table-cell">
+                  1y
+                </SortableHeader>
+                <SortableHeader column="fiveYear" align="right" className="hidden sm:table-cell pr-5">
+                  5y
+                </SortableHeader>
               </tr>
             </thead>
             <tbody>
