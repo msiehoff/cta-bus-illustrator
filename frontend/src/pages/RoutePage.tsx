@@ -3,7 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useRouteRidership } from '../hooks/useRouteRidership'
 import RidershipChart, { type WindowKey } from '../components/RidershipChart'
 import StatCard from '../components/StatCard'
+import RecoveryBanner from '../components/RecoveryBanner'
+import RouteRecoveryTable from '../components/RouteRecoveryTable'
 import {
+  buildRouteRecovery,
   formatMonth,
   formatRides,
   preCovidTrend,
@@ -34,6 +37,13 @@ const RoutePage = () => {
       sunday:   get('sunday'),
     }
   }, [records, latestMonth])
+
+  const recovery = useMemo(
+    () => (latestMonth ? buildRouteRecovery(records, latestMonth) : null),
+    [records, latestMonth],
+  )
+
+  const weekdayRecovery = recovery?.rows.find(r => r.type === 'weekday')
 
   const statProps = (type: 'weekday' | 'saturday' | 'sunday') => {
     const current = latest?.[type] ?? 0
@@ -90,6 +100,27 @@ const RoutePage = () => {
         </div>
       )}
 
+      {recovery && weekdayRecovery && (
+        <RecoveryBanner
+          title="Route recovery"
+          currentMonth={recovery.currentMonth}
+          benchmarkMonth={recovery.benchmarkMonth}
+          current={weekdayRecovery.current}
+          preCovid={weekdayRecovery.preCovid2019 ?? undefined}
+          recovery={weekdayRecovery.recoveryPct ?? undefined}
+        />
+      )}
+
+      {recovery && (
+        <RouteRecoveryTable
+          currentMonth={recovery.currentMonth}
+          benchmarkMonth={recovery.benchmarkMonth}
+          yearAgoMonth={recovery.yearAgoMonth}
+          fiveYearsAgoMonth={recovery.fiveYearsAgoMonth}
+          rows={recovery.rows}
+        />
+      )}
+
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-4">Ridership over time</h2>
         {loading && <div className="text-gray-500 text-sm py-10 text-center">Loading…</div>}
@@ -102,9 +133,6 @@ const RoutePage = () => {
             height={220}
           />
         )}
-        <p className="text-[10px] text-gray-600 mt-2">
-          Stat cards compare to same calendar month in 2019 (pre-COVID baseline).
-        </p>
       </div>
 
       <div className="bg-gray-900 border border-dashed border-gray-700 rounded-lg px-5 py-4 opacity-60 flex items-center gap-4">

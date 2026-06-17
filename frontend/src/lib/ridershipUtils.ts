@@ -77,3 +77,59 @@ export const preCovidTrend = (
     trendUp: pct >= 100 ? true : pct < 70 ? false : undefined,
   }
 }
+
+export interface RecoveryRow {
+  label: string
+  type: RidershipType
+  current: number
+  preCovid2019: number | null
+  yearAgo: number | null
+  fiveYearsAgo: number | null
+  recoveryPct: number | null
+  yearAgoPct: number | null
+  fiveYearPct: number | null
+}
+
+export interface RouteRecoverySnapshot {
+  currentMonth: string
+  benchmarkMonth: string
+  yearAgoMonth: string
+  fiveYearsAgoMonth: string
+  rows: RecoveryRow[]
+}
+
+const DAY_TYPES: { label: string; type: RidershipType }[] = [
+  { label: 'Weekday', type: 'weekday' },
+  { label: 'Saturday', type: 'saturday' },
+  { label: 'Sunday', type: 'sunday' },
+]
+
+export const buildRouteRecovery = (
+  records: RidershipDataPoint[],
+  latestMonth: string,
+): RouteRecoverySnapshot => {
+  const benchmarkMonth = preCovidMonth(latestMonth)
+  const yearAgoMonth = comparisonMonth(latestMonth, 1)
+  const fiveYearsAgoMonth = comparisonMonth(latestMonth, 5)
+
+  const rows = DAY_TYPES.map(({ label, type }) => {
+    const current = getRidership(records, latestMonth, type) ?? 0
+    const preCovid2019 = getRidership(records, benchmarkMonth, type)
+    const yearAgo = getRidership(records, yearAgoMonth, type)
+    const fiveYearsAgo = getRidership(records, fiveYearsAgoMonth, type)
+
+    return {
+      label,
+      type,
+      current,
+      preCovid2019,
+      yearAgo,
+      fiveYearsAgo,
+      recoveryPct: preCovid2019 != null ? recoveryPct(current, preCovid2019) : null,
+      yearAgoPct: yearAgo != null ? pctDiff(current, yearAgo) : null,
+      fiveYearPct: fiveYearsAgo != null ? pctDiff(current, fiveYearsAgo) : null,
+    }
+  })
+
+  return { currentMonth: latestMonth, benchmarkMonth, yearAgoMonth, fiveYearsAgoMonth, rows }
+}

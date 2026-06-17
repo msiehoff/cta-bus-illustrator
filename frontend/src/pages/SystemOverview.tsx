@@ -4,7 +4,7 @@ import { useRoutesComparison } from '../hooks/useRoutesComparison'
 import RidershipChart, { type WindowKey, cutoffMonth } from '../components/RidershipChart'
 import StatCard from '../components/StatCard'
 import RoutesComparisonTable from '../components/RoutesComparisonTable'
-import SystemRecoveryBanner from '../components/SystemRecoveryBanner'
+import RecoveryBanner from '../components/RecoveryBanner'
 import type { RidershipType } from '../types/api'
 import {
   formatMonth,
@@ -82,12 +82,13 @@ const SystemOverview = () => {
       )}
 
       {comparison && (
-        <SystemRecoveryBanner
+        <RecoveryBanner
+          title="System recovery"
           currentMonth={comparison.currentMonth}
           benchmarkMonth={comparison.benchmarkMonth}
-          systemCurrent={comparison.systemCurrent}
-          systemPreCovid={comparison.systemPreCovid}
-          systemRecovery={comparison.systemRecovery}
+          current={comparison.systemCurrent}
+          preCovid={comparison.systemPreCovid}
+          recovery={comparison.systemRecovery}
         />
       )}
 

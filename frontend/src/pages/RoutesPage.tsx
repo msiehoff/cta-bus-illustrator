@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useRoutesComparison } from '../hooks/useRoutesComparison'
 import RoutesComparisonTable from '../components/RoutesComparisonTable'
-import SystemRecoveryBanner from '../components/SystemRecoveryBanner'
+import RecoveryBanner from '../components/RecoveryBanner'
 import { formatMonth } from '../lib/ridershipUtils'
 
 const RoutesPage = () => {
@@ -19,12 +19,13 @@ const RoutesPage = () => {
       </div>
 
       {data && (
-        <SystemRecoveryBanner
+        <RecoveryBanner
+          title="System recovery"
           currentMonth={data.currentMonth}
           benchmarkMonth={data.benchmarkMonth}
-          systemCurrent={data.systemCurrent}
-          systemPreCovid={data.systemPreCovid}
-          systemRecovery={data.systemRecovery}
+          current={data.systemCurrent}
+          preCovid={data.systemPreCovid}
+          recovery={data.systemRecovery}
         />
       )}
 
