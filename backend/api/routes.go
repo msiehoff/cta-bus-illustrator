@@ -66,7 +66,15 @@ func (a *API) handleGetRoutesComparison(c *gin.Context) {
 		return
 	}
 
-	result, err := a.routeService.GetRoutesComparison(ridershipType)
+	month, err := resolveMonth(c.Query("month"), func() (time.Time, error) {
+		return a.routeService.GetLatestRidershipMonth()
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := a.routeService.GetRoutesComparison(ridershipType, month)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

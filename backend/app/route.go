@@ -65,17 +65,12 @@ func (s *RouteService) GetSystemRidership() ([]business.RidershipRecord, error) 
 	return s.ridershipRepo.GetSystemTotals()
 }
 
-func (s *RouteService) GetRoutesComparison(ridershipType business.RidershipType) (*RoutesComparisonResult, error) {
-	latest, err := s.ridershipRepo.GetLatestMonth()
-	if err != nil {
-		return nil, err
-	}
+func (s *RouteService) GetRoutesComparison(ridershipType business.RidershipType, month time.Time) (*RoutesComparisonResult, error) {
+	yearAgo := offsetMonth(month, 1)
+	fiveYearsAgo := offsetMonth(month, 5)
+	preCovid := preCovidMonth(month)
 
-	yearAgo := offsetMonth(latest, 1)
-	fiveYearsAgo := offsetMonth(latest, 5)
-	preCovid := preCovidMonth(latest)
-
-	currentByRoute, err := s.ridershipRepo.GetByMonth(latest, ridershipType)
+	currentByRoute, err := s.ridershipRepo.GetByMonth(month, ridershipType)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +129,7 @@ func (s *RouteService) GetRoutesComparison(ridershipType business.RidershipType)
 	}
 
 	result := &RoutesComparisonResult{
-		CurrentMonth:      latest,
+		CurrentMonth:      month,
 		BenchmarkMonth:    preCovid,
 		YearAgoMonth:      yearAgo,
 		FiveYearsAgoMonth: fiveYearsAgo,

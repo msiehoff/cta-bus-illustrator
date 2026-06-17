@@ -1,68 +1,81 @@
 import { useMemo, useState } from 'react'
 import { useSystemRidership } from '../hooks/useSystemRidership'
 import { useRoutesComparison } from '../hooks/useRoutesComparison'
+import { useRidershipFilters } from '../hooks/useRidershipFilters'
 import RidershipChart, { type WindowKey, cutoffMonth } from '../components/RidershipChart'
 import StatCard from '../components/StatCard'
 import RoutesComparisonTable from '../components/RoutesComparisonTable'
 import RecoveryBanner from '../components/RecoveryBanner'
-import type { RidershipType } from '../types/api'
+import RidershipFilters from '../components/RidershipFilters'
+import RecoveryDistributionChart from '../components/RecoveryDistributionChart'
+import RecoveryScatterChart from '../components/RecoveryScatterChart'
+import SeasonalityChart from '../components/SeasonalityChart'
+import TopMoversPanel from '../components/TopMoversPanel'
 import {
+  buildRecoveryDistribution,
+  buildRecoveryScatter,
+  buildSeasonality,
   formatMonth,
   formatRides,
+  getSnapshotForMonth,
   preCovidTrend,
 } from '../lib/ridershipUtils'
 
 const SystemOverview = () => {
+  const {
+    months,
+    monthsLoading,
+    selectedMonth,
+    setSelectedMonth,
+    ridershipType,
+    setRidershipType,
+  } = useRidershipFilters()
   const { records, loading, error } = useSystemRidership()
-  const { data: comparison, loading: comparisonLoading } = useRoutesComparison()
+  const { data: comparison, loading: comparisonLoading } = useRoutesComparison(ridershipType, selectedMonth)
   const [search, setSearch] = useState('')
   const [window, setWindow] = useState<WindowKey>('5y')
 
-  const latestMonth = useMemo(() => {
-    if (!records.length) return null
-    return records[records.length - 1].month
-  }, [records])
-
-  const latest = useMemo(() => {
-    if (!latestMonth) return null
-    const rows = records.filter(r => r.month === latestMonth)
-    const get = (type: RidershipType) => rows.find(r => r.type === type)?.avgRides ?? 0
-    return {
-      month: latestMonth,
-      weekday:  get('weekday'),
-      saturday: get('saturday'),
-      sunday:   get('sunday'),
-    }
-  }, [records, latestMonth])
+  const latest = useMemo(
+    () => (selectedMonth ? getSnapshotForMonth(records, selectedMonth) : null),
+    [records, selectedMonth],
+  )
 
   const windowStart = useMemo(() => {
-    if (!records.length || !latestMonth) return null
-    const cutoff = cutoffMonth(window, latestMonth)
+    if (!records.length || !selectedMonth) return null
+    const cutoff = cutoffMonth(window, selectedMonth)
     const windowRecords = cutoff ? records.filter(r => r.month >= cutoff) : records
     if (!windowRecords.length) return null
     const firstMonth = windowRecords[0].month
-    const rows = windowRecords.filter(r => r.month === firstMonth)
-    const get = (type: RidershipType) => rows.find(r => r.type === type)?.avgRides ?? 0
-    return {
-      month: firstMonth,
-      weekday:  get('weekday'),
-      saturday: get('saturday'),
-      sunday:   get('sunday'),
-    }
-  }, [records, window, latestMonth])
+    return getSnapshotForMonth(records, firstMonth)
+  }, [records, window, selectedMonth])
 
   const sinceLabel = windowStart ? `since ${formatMonth(windowStart.month)}` : null
 
   const statProps = (type: 'weekday' | 'saturday' | 'sunday') => {
     const current = latest?.[type] ?? 0
-    const preCovid = latestMonth
-      ? preCovidTrend(records, latestMonth, type)
+    const preCovid = selectedMonth
+      ? preCovidTrend(records, selectedMonth, type)
       : {}
     return {
       value: formatRides(current),
       ...preCovid,
     }
   }
+
+  const distribution = useMemo(
+    () => buildRecoveryDistribution(comparison?.routes ?? []),
+    [comparison?.routes],
+  )
+
+  const scatter = useMemo(
+    () => buildRecoveryScatter(comparison?.routes ?? []),
+    [comparison?.routes],
+  )
+
+  const seasonality = useMemo(
+    () => buildSeasonality(records, ridershipType),
+    [records, ridershipType],
+  )
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -72,6 +85,15 @@ const SystemOverview = () => {
           CTA Bus Network · All Routes{latest ? ` · ${formatMonth(latest.month)}` : ''}
         </p>
       </div>
+
+      <RidershipFilters
+        months={months}
+        selectedMonth={selectedMonth}
+        ridershipType={ridershipType}
+        monthsLoading={monthsLoading}
+        onMonthChange={setSelectedMonth}
+        onTypeChange={setRidershipType}
+      />
 
       {latest && (
         <div className="grid grid-cols-3 gap-3 mb-5">
@@ -89,8 +111,32 @@ const SystemOverview = () => {
           current={comparison.systemCurrent}
           preCovid={comparison.systemPreCovid}
           recovery={comparison.systemRecovery}
+          dayTypeLabel={ridershipType}
         />
       )}
+
+      {comparison && <TopMoversPanel routes={comparison.routes} />}
+
+      <div className="grid lg:grid-cols-2 gap-3 mb-5">
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+          <h2 className="text-sm font-medium text-white mb-1">Recovery distribution</h2>
+          <p className="text-xs text-gray-500 mb-4">Routes grouped by pre-COVID recovery %</p>
+          <RecoveryDistributionChart data={distribution} />
+        </div>
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+          <h2 className="text-sm font-medium text-white mb-1">Ridership vs recovery</h2>
+          <p className="text-xs text-gray-500 mb-4">Click a dot to open route detail</p>
+          <RecoveryScatterChart data={scatter} />
+        </div>
+      </div>
+
+      <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+        <h2 className="text-sm font-medium text-white mb-1">Seasonality</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Average {ridershipType} ridership by calendar month across all years
+        </p>
+        <SeasonalityChart data={seasonality} />
+      </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-4">System ridership over time</h2>
@@ -102,6 +148,7 @@ const SystemOverview = () => {
             window={window}
             onWindowChange={setWindow}
             height={220}
+            highlightType={ridershipType}
           />
         )}
         {sinceLabel && (

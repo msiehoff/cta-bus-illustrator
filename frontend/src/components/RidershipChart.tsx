@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   type TooltipProps,
 } from 'recharts'
-import type { RidershipDataPoint } from '../types/api'
+import type { RidershipDataPoint, RidershipType } from '../types/api'
 
 export type WindowKey = 'all' | '5y' | '1y'
 
@@ -24,6 +24,9 @@ interface Props {
   window: WindowKey
   onWindowChange: (w: WindowKey) => void
   height?: number
+  overlayRecords?: RidershipDataPoint[]
+  overlayLabel?: string
+  highlightType?: RidershipType
 }
 
 interface ChartRow {
@@ -31,6 +34,7 @@ interface ChartRow {
   weekday?: number
   saturday?: number
   sunday?: number
+  system?: number
 }
 
 const LINE_CONFIG = [
@@ -71,7 +75,15 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
   )
 }
 
-export default function RidershipChart({ records, window: w, onWindowChange, height = 220 }: Props) {
+export default function RidershipChart({
+  records,
+  window: w,
+  onWindowChange,
+  height = 220,
+  overlayRecords,
+  overlayLabel = 'System avg',
+  highlightType,
+}: Props) {
   const allData = useMemo<ChartRow[]>(() => {
     const byMonth = new Map<string, ChartRow>()
     for (const r of records) {
@@ -79,8 +91,18 @@ export default function RidershipChart({ records, window: w, onWindowChange, hei
       const row = byMonth.get(r.month)!
       row[r.type] = Math.round(r.avgRides)
     }
+
+    if (overlayRecords?.length && highlightType) {
+      for (const r of overlayRecords) {
+        if (r.type !== highlightType) continue
+        if (!byMonth.has(r.month)) byMonth.set(r.month, { month: r.month })
+        const row = byMonth.get(r.month)! 
+        row.system = Math.round(r.avgRides)
+      }
+    }
+
     return Array.from(byMonth.values()).sort((a, b) => a.month.localeCompare(b.month))
-  }, [records])
+  }, [records, overlayRecords, highlightType])
 
   // Anchor to the latest month in the data, not today
   const latestMonth = allData.length ? allData[allData.length - 1].month : ''
@@ -92,9 +114,11 @@ export default function RidershipChart({ records, window: w, onWindowChange, hei
     return allData.filter(row => row.month >= cutoff)
   }, [allData, w, latestMonth])
 
-  const activeLines = LINE_CONFIG.filter(cfg =>
-    records.some(r => r.type === cfg.key)
-  )
+  const visibleLines = highlightType
+    ? LINE_CONFIG.filter(cfg => cfg.key === highlightType && records.some(r => r.type === cfg.key))
+    : LINE_CONFIG.filter(cfg => records.some(r => r.type === cfg.key))
+
+  const hasOverlay = Boolean(highlightType && overlayRecords?.some(r => r.type === highlightType))
 
   if (allData.length === 0) {
     return (
@@ -107,13 +131,19 @@ export default function RidershipChart({ records, window: w, onWindowChange, hei
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <div className="flex gap-4">
-          {activeLines.map(cfg => (
+        <div className="flex gap-4 flex-wrap">
+          {visibleLines.map(cfg => (
             <div key={cfg.key} className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full" style={{ background: cfg.color }} />
               <span className="text-xs text-gray-400 capitalize">{cfg.label}</span>
             </div>
           ))}
+          {hasOverlay && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-0.5 bg-gray-400" />
+              <span className="text-xs text-gray-400">{overlayLabel}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {WINDOWS.map(win => (
@@ -150,7 +180,7 @@ export default function RidershipChart({ records, window: w, onWindowChange, hei
             width={44}
           />
           <Tooltip content={<CustomTooltip />} />
-          {activeLines.map(cfg => (
+          {visibleLines.map(cfg => (
             <Line
               key={cfg.key}
               type="monotone"
@@ -161,6 +191,17 @@ export default function RidershipChart({ records, window: w, onWindowChange, hei
               activeDot={{ r: 4, strokeWidth: 0 }}
             />
           ))}
+          {hasOverlay && (
+            <Line
+              type="monotone"
+              dataKey="system"
+              stroke="#9ca3af"
+              strokeWidth={2}
+              strokeDasharray="6 4"
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0 }}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>
