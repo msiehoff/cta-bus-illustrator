@@ -103,7 +103,7 @@ const RouteContextPanel = ({
                 state={{ routeName: peer.routeName }}
                 className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg px-3 py-1.5 text-xs transition-colors"
               >
-                <span className="text-blue-300 font-semibold">{peer.routeId}</span>
+                <span className="text-white truncate max-w-[10rem]">{peer.routeName}</span>
                 <span className="text-gray-300">{formatRides(peer.current)}</span>
                 {peer.recoveryPct != null && (
                   <span className={recoveryColorClass(peer.recoveryPct)}>
