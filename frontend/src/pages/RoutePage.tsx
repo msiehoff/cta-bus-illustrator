@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useRouteRidership } from '../hooks/useRouteRidership'
+import { useRouteName } from '../hooks/useRouteName'
 import RidershipChart, { type WindowKey } from '../components/RidershipChart'
 import StatCard from '../components/StatCard'
 import RecoveryBanner from '../components/RecoveryBanner'
@@ -18,7 +19,7 @@ const RoutePage = () => {
   const { records, loading, error } = useRouteRidership(externalId)
   const [window, setWindow] = useState<WindowKey>('5y')
 
-  const routeName = (history.state as { routeName?: string } | null)?.routeName ?? externalId
+  const routeName = useRouteName(externalId)
 
   const latestMonth = useMemo(() => {
     if (!records.length) return null
