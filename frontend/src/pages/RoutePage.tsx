@@ -109,32 +109,6 @@ const RoutePage = () => {
         onTypeChange={setRidershipType}
       />
 
-      {comparison && selectedMonth && (
-        <RouteContextPanel
-          routeId={externalId}
-          routeName={routeName}
-          comparison={comparison.routes}
-          systemTotal={comparison.systemCurrent}
-          ridershipType={ridershipType}
-          selectedMonth={selectedMonth}
-        />
-      )}
-
-      {comparison && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
-          <h2 className="text-sm font-medium text-white mb-1">Where this route falls</h2>
-          <p className="text-xs text-gray-500 mb-2">
-            Network ridership distribution · {formatMonth(comparison.currentMonth)} · {ridershipType}
-          </p>
-          <RidershipDistributionChart
-            routes={comparison.routes}
-            highlightRouteId={externalId}
-            highlightRouteName={routeName}
-            ridershipType={ridershipType}
-          />
-        </div>
-      )}
-
       {latest && (
         <div className="grid grid-cols-3 gap-3 mb-5">
           <StatCard
@@ -174,18 +148,16 @@ const RoutePage = () => {
         />
       )}
 
-      <div className="grid lg:grid-cols-2 gap-3 mb-5">
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
-          <h2 className="text-sm font-medium text-white mb-1">Seasonality</h2>
-          <p className="text-xs text-gray-500 mb-4">Avg {ridershipType} ridership by calendar month</p>
-          <SeasonalityChart data={seasonality} />
-        </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
-          <h2 className="text-sm font-medium text-white mb-1">Weekend share</h2>
-          <p className="text-xs text-gray-500 mb-4">(Sat + Sun) / weekday ridership over time</p>
-          <WeekendShareChart data={weekendShare} />
-        </div>
-      </div>
+      {comparison && selectedMonth && (
+        <RouteContextPanel
+          routeId={externalId}
+          routeName={routeName}
+          comparison={comparison.routes}
+          systemTotal={comparison.systemCurrent}
+          ridershipType={ridershipType}
+          selectedMonth={selectedMonth}
+        />
+      )}
 
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-4">Ridership over time</h2>
@@ -206,6 +178,34 @@ const RoutePage = () => {
             </p>
           </>
         )}
+      </div>
+
+      {comparison && (
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+          <h2 className="text-sm font-medium text-white mb-1">Where this route falls</h2>
+          <p className="text-xs text-gray-500 mb-2">
+            Network ridership distribution · {formatMonth(comparison.currentMonth)} · {ridershipType}
+          </p>
+          <RidershipDistributionChart
+            routes={comparison.routes}
+            highlightRouteId={externalId}
+            highlightRouteName={routeName}
+            ridershipType={ridershipType}
+          />
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-2 gap-3 mb-5">
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+          <h2 className="text-sm font-medium text-white mb-1">Seasonality</h2>
+          <p className="text-xs text-gray-500 mb-4">Avg {ridershipType} ridership by calendar month</p>
+          <SeasonalityChart data={seasonality} />
+        </div>
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+          <h2 className="text-sm font-medium text-white mb-1">Weekend share</h2>
+          <p className="text-xs text-gray-500 mb-4">(Sat + Sun) / weekday ridership over time</p>
+          <WeekendShareChart data={weekendShare} />
+        </div>
       </div>
 
       <div className="bg-gray-900 border border-dashed border-gray-700 rounded-lg px-5 py-4 opacity-60 flex items-center gap-4">
