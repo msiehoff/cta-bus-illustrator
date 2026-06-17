@@ -21,6 +21,7 @@ func (a *API) registerRoutes() {
 	{
 		v1.GET("/health", a.handleHealth)
 		v1.GET("/routes", a.handleGetRoutes)
+		v1.GET("/routes/comparison", a.handleGetRoutesComparison)
 		v1.POST("/routes/import-segments", a.handleImportRouteSegments)
 		v1.POST("/routes/:externalId/segments", a.handleImportRouteSegmentsJSON)
 		v1.GET("/ridership/months", a.handleGetRidershipMonths)
@@ -56,6 +57,22 @@ func (a *API) handleGetRoutes(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, toGetRoutesResponse(routes))
+}
+
+func (a *API) handleGetRoutesComparison(c *gin.Context) {
+	ridershipType, err := resolveRidershipType(c.Query("type"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := a.routeService.GetRoutesComparison(ridershipType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, toRoutesComparisonResponse(result))
 }
 
 func (a *API) handleImportRouteSegments(c *gin.Context) {
