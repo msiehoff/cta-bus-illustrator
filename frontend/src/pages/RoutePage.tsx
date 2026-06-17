@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useRouteRidership } from '../hooks/useRouteRidership'
-import { useSystemRidership } from '../hooks/useSystemRidership'
 import { useRoutesComparison } from '../hooks/useRoutesComparison'
 import { useRouteName } from '../hooks/useRouteName'
 import { useRidershipFilters } from '../hooks/useRidershipFilters'
@@ -27,7 +26,6 @@ const RoutePage = () => {
   const { externalId = '' } = useParams<{ externalId: string }>()
   const navigate = useNavigate()
   const { records, loading, error } = useRouteRidership(externalId)
-  const { records: systemRecords } = useSystemRidership()
   const {
     months,
     monthsLoading,
@@ -184,12 +182,10 @@ const RoutePage = () => {
               window={window}
               onWindowChange={setWindow}
               height={220}
-              overlayRecords={systemRecords}
-              overlayLabel="System avg"
               highlightType={ridershipType}
             />
             <p className="text-[10px] text-gray-600 mt-2">
-              Dashed line = system average. Shaded area = pandemic period (Mar 2020 – Dec 2022).
+              Shaded area = pandemic period (Mar 2020 – Dec 2022).
               Pre-pandemic benchmark uses the same calendar month in 2019.
             </p>
           </>
