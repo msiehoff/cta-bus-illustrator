@@ -3,6 +3,8 @@ import { twMerge } from 'tailwind-merge'
 import type { RidershipType } from '../types/api'
 import type { RankedEntry, TooltipData } from './RouteMap'
 import { legendGradient, LEGEND_TICKS } from '../lib/ridershipColors'
+import { formatMonth } from '../lib/ridershipUtils'
+import MonthSelector from './MonthSelector'
 
 interface Props {
   availableMonths: string[]
@@ -19,11 +21,6 @@ const RIDERSHIP_TYPES: { value: RidershipType; label: string }[] = [
   { value: 'saturday', label: 'Saturday' },
   { value: 'sunday', label: 'Sunday' },
 ]
-
-const formatMonth = (yyyyMM: string) => {
-  const [year, month] = yyyyMM.split('-').map(Number)
-  return new Date(year, month - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' })
-}
 
 const formatRidesCompact = (n: number): string => {
   if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
@@ -58,7 +55,7 @@ const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntrie
 
   return (
     <div className="absolute top-3 left-3 z-10 pointer-events-auto">
-      <div className="bg-gray-900/90 backdrop-blur border border-gray-700/60 rounded-xl shadow-2xl p-3 flex flex-col gap-3 w-52">
+      <div className="bg-gray-900/90 backdrop-blur border border-gray-700/60 rounded-xl shadow-2xl p-3 flex flex-col gap-3 w-56">
 
       <div>
         <label className={labelClass}>Ridership</label>
@@ -73,20 +70,13 @@ const FilterBar = ({ availableMonths, selectedMonth, ridershipType, rankedEntrie
         </select>
       </div>
 
-      <div>
-        <label className={labelClass}>Month</label>
-        <select
-          value={selectedMonth ?? ''}
-          onChange={e => onMonthChange(e.target.value)}
-          disabled={availableMonths.length === 0}
-          className={selectClass}
-        >
-          {availableMonths.length === 0
-            ? <option value="">No data</option>
-            : availableMonths.map(m => <option key={m} value={m}>{formatMonth(m)}</option>)
-          }
-        </select>
-      </div>
+      <MonthSelector
+        months={availableMonths}
+        selectedMonth={selectedMonth}
+        onMonthChange={onMonthChange}
+        disabled={availableMonths.length === 0}
+        compact
+      />
 
       <div className={dividerClass} />
 

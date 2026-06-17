@@ -20,21 +20,35 @@ func (r *RidershipRepo) UpsertBatch(_ []business.RidershipRecord) error {
 	return nil
 }
 
-func (r *RidershipRepo) GetByMonth(_ time.Time, ridershipType business.RidershipType) (map[string]*business.RidershipRecord, error) {
-	avgRides := map[business.RidershipType]float64{
+func (r *RidershipRepo) GetByMonth(month time.Time, ridershipType business.RidershipType) (map[string]*business.RidershipRecord, error) {
+	base := map[business.RidershipType]float64{
 		business.RidershipTypeWeekday:  8500,
 		business.RidershipTypeSaturday: 5000,
 		business.RidershipTypeSunday:   3500,
 	}
+	multiplier := fakeMonthMultiplier(month)
 
 	return map[string]*business.RidershipRecord{
 		"66": {
 			RouteExternalID: "66",
-			MonthBeginning:  time.Date(2025, 11, 1, 0, 0, 0, 0, time.UTC),
+			MonthBeginning:  month,
 			Type:            ridershipType,
-			AvgRides:        avgRides[ridershipType],
+			AvgRides:        base[ridershipType] * multiplier,
 		},
 	}, nil
+}
+
+func fakeMonthMultiplier(month time.Time) float64 {
+	switch month.Format("2006-01") {
+	case "2019-11":
+		return 1.0
+	case "2020-11":
+		return 0.55
+	case "2024-11":
+		return 0.92
+	default:
+		return 0.85
+	}
 }
 
 func (r *RidershipRepo) GetAllByRoute(routeExternalID string) ([]business.RidershipRecord, error) {

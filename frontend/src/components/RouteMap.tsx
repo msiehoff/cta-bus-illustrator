@@ -1,8 +1,10 @@
 import { useRef, useCallback, useEffect, useState, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Map, { Layer, Source, type MapRef, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
 import type { LayerProps } from 'react-map-gl/maplibre'
 import type { GetRoutesResponse, RouteProperties, RidershipType } from '../types/api'
 import { ridershipColorExpression } from '../lib/ridershipColors'
+import { EXPRESS_PAIRS } from '../lib/expressPairs'
 import RouteTooltip from './RouteTooltip'
 import FilterBar from './FilterBar'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -11,13 +13,7 @@ const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron'
 const CHICAGO_CENTER = { longitude: -87.6298, latitude: 41.8781 }
 const MAX_ZOOM = 15
 
-// Maps each route id to its express/local counterpart.
-// Both directions are listed so a lookup always works regardless of which is hovered.
-const EXPRESS_PAIRS: Record<string, string> = {
-  '4': 'X4', 'X4': '4',
-  '9': 'X9', 'X9': '9',
-  '49': 'X49', 'X49': '49',
-}
+const VALID_TYPES: RidershipType[] = ['weekday', 'saturday', 'sunday']
 
 const routeLineLayer: LayerProps = {
   id: 'bus-routes',
@@ -106,6 +102,8 @@ const computeRankedEntries = (routes: GetRoutesResponse): RankedEntry[] => {
 
 const RouteMap = () => {
   const mapRef = useRef<MapRef>(null)
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [routes, setRoutes] = useState<GetRoutesResponse | null>(null)
   const [hoveredRoute, setHoveredRoute] = useState<HoveredRoute | null>(null)
 
@@ -166,11 +164,29 @@ const RouteMap = () => {
       const data = await res.json()
       const months: string[] = data.months ?? []
       setAvailableMonths(months)
-      setSelectedMonth(months[0] ?? null)
+
+      const monthParam = searchParams.get('month')
+      setSelectedMonth(monthParam && months.includes(monthParam) ? monthParam : months[0] ?? null)
+
+      const typeParam = searchParams.get('type') as RidershipType | null
+      if (typeParam && VALID_TYPES.includes(typeParam)) {
+        setRidershipType(typeParam)
+      }
+
       setMonthsLoaded(true)
     }
     fetchMonths()
-  }, [])
+  }, [searchParams])
+
+  useEffect(() => {
+    if (!monthsLoaded) return
+    const routeParam = searchParams.get('route')
+    if (!routeParam) return
+
+    const pairedId = EXPRESS_PAIRS[routeParam]
+    const ids = pairedId ? [routeParam, pairedId] : [routeParam]
+    setHighlight({ ids, key: Date.now() })
+  }, [monthsLoaded, searchParams])
 
   // Re-fetch routes whenever the selected month or ridership type changes.
   useEffect(() => {
@@ -230,6 +246,13 @@ const RouteMap = () => {
     setHoveredRoute(null)
   }, [])
 
+  const onMapClick = useCallback((e: MapLayerMouseEvent) => {
+    const feature = e.features?.[0]
+    if (!feature?.properties) return
+    const props = feature.properties as RouteProperties
+    navigate(`/routes/${props.routeId}`, { state: { routeName: props.routeName } })
+  }, [navigate])
+
   const hoveredRank = hoveredRoute
     ? hoveredRoute.data.type === 'single'
       ? rankByRouteId[hoveredRoute.data.properties.routeId]
@@ -248,6 +271,7 @@ const RouteMap = () => {
         onLoad={onMapLoad}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
+        onClick={onMapClick}
       >
         {routes && (
           <Source id="bus-routes" type="geojson" data={routes}>

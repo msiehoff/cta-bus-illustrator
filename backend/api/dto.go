@@ -70,6 +70,58 @@ type GetRidershipResponse struct {
 	Records []RidershipDataPoint `json:"records"`
 }
 
+// --- Routes comparison response ---
+
+type routeComparisonDTO struct {
+	RouteID      string   `json:"routeId"`
+	RouteName    string   `json:"routeName"`
+	Current      float64  `json:"current"`
+	YearAgo      *float64 `json:"yearAgo,omitempty"`
+	FiveYearsAgo *float64 `json:"fiveYearsAgo,omitempty"`
+	PreCovid2019 *float64 `json:"preCovid2019,omitempty"`
+	RecoveryPct  *float64 `json:"recoveryPct,omitempty"`
+	YearAgoPct   *float64 `json:"yearAgoPct,omitempty"`
+	FiveYearPct  *float64 `json:"fiveYearPct,omitempty"`
+}
+
+type GetRoutesComparisonResponse struct {
+	CurrentMonth      string               `json:"currentMonth"`
+	BenchmarkMonth    string               `json:"benchmarkMonth"`
+	YearAgoMonth      string               `json:"yearAgoMonth"`
+	FiveYearsAgoMonth string               `json:"fiveYearsAgoMonth"`
+	SystemCurrent     float64              `json:"systemCurrent"`
+	SystemPreCovid    *float64             `json:"systemPreCovid,omitempty"`
+	SystemRecovery    *float64             `json:"systemRecovery,omitempty"`
+	Routes            []routeComparisonDTO `json:"routes"`
+}
+
+func toRoutesComparisonResponse(result *app.RoutesComparisonResult) GetRoutesComparisonResponse {
+	routes := make([]routeComparisonDTO, len(result.Routes))
+	for i, r := range result.Routes {
+		routes[i] = routeComparisonDTO{
+			RouteID:      r.RouteID,
+			RouteName:    r.RouteName,
+			Current:      r.Current,
+			YearAgo:      r.YearAgo,
+			FiveYearsAgo: r.FiveYearsAgo,
+			PreCovid2019: r.PreCovid2019,
+			RecoveryPct:  r.RecoveryPct,
+			YearAgoPct:   r.YearAgoPct,
+			FiveYearPct:  r.FiveYearPct,
+		}
+	}
+	return GetRoutesComparisonResponse{
+		CurrentMonth:      result.CurrentMonth.Format("2006-01"),
+		BenchmarkMonth:    result.BenchmarkMonth.Format("2006-01"),
+		YearAgoMonth:      result.YearAgoMonth.Format("2006-01"),
+		FiveYearsAgoMonth: result.FiveYearsAgoMonth.Format("2006-01"),
+		SystemCurrent:     result.SystemCurrent,
+		SystemPreCovid:    result.SystemPreCovid,
+		SystemRecovery:    result.SystemRecovery,
+		Routes:            routes,
+	}
+}
+
 func toRidershipResponse(records []business.RidershipRecord) GetRidershipResponse {
 	points := make([]RidershipDataPoint, len(records))
 	for i, r := range records {

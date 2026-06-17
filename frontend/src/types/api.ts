@@ -35,3 +35,28 @@ export interface RidershipDataPoint {
 export interface GetRidershipResponse {
   records: RidershipDataPoint[]
 }
+
+// --- Routes comparison endpoint ---
+
+export interface RouteComparison {
+  routeId: string
+  routeName: string
+  current: number
+  yearAgo?: number
+  fiveYearsAgo?: number
+  preCovid2019?: number
+  recoveryPct?: number
+  yearAgoPct?: number
+  fiveYearPct?: number
+}
+
+export interface GetRoutesComparisonResponse {
+  currentMonth: string
+  benchmarkMonth: string
+  yearAgoMonth: string
+  fiveYearsAgoMonth: string
+  systemCurrent: number
+  systemPreCovid?: number
+  systemRecovery?: number
+  routes: RouteComparison[]
+}

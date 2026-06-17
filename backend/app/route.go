@@ -65,6 +65,109 @@ func (s *RouteService) GetSystemRidership() ([]business.RidershipRecord, error) 
 	return s.ridershipRepo.GetSystemTotals()
 }
 
+func (s *RouteService) GetRoutesComparison(ridershipType business.RidershipType, month time.Time) (*RoutesComparisonResult, error) {
+	yearAgo := offsetMonth(month, 1)
+	fiveYearsAgo := offsetMonth(month, 5)
+	preCovid := preCovidMonth(month)
+
+	currentByRoute, err := s.ridershipRepo.GetByMonth(month, ridershipType)
+	if err != nil {
+		return nil, err
+	}
+	yearAgoByRoute, err := s.ridershipRepo.GetByMonth(yearAgo, ridershipType)
+	if err != nil {
+		return nil, err
+	}
+	fiveYearsAgoByRoute, err := s.ridershipRepo.GetByMonth(fiveYearsAgo, ridershipType)
+	if err != nil {
+		return nil, err
+	}
+	preCovidByRoute, err := s.ridershipRepo.GetByMonth(preCovid, ridershipType)
+	if err != nil {
+		return nil, err
+	}
+
+	routes, err := s.repo.GetRoutes()
+	if err != nil {
+		return nil, err
+	}
+
+	comparisons := make([]RouteComparison, 0, len(routes))
+	var systemCurrent float64
+	var systemPreCovid float64
+	var hasPreCovid bool
+
+	for _, route := range routes {
+		currentRec := currentByRoute[route.ExternalID]
+		if currentRec == nil {
+			continue
+		}
+
+		cmp := RouteComparison{
+			RouteID:   route.ExternalID,
+			RouteName: route.Name,
+			Current:   currentRec.AvgRides,
+		}
+
+		if rec := yearAgoByRoute[route.ExternalID]; rec != nil {
+			cmp.YearAgo = &rec.AvgRides
+			cmp.YearAgoPct = pctChange(currentRec.AvgRides, rec.AvgRides)
+		}
+		if rec := fiveYearsAgoByRoute[route.ExternalID]; rec != nil {
+			cmp.FiveYearsAgo = &rec.AvgRides
+			cmp.FiveYearPct = pctChange(currentRec.AvgRides, rec.AvgRides)
+		}
+		if rec := preCovidByRoute[route.ExternalID]; rec != nil {
+			cmp.PreCovid2019 = &rec.AvgRides
+			cmp.RecoveryPct = recoveryPct(currentRec.AvgRides, rec.AvgRides)
+			systemPreCovid += rec.AvgRides
+			hasPreCovid = true
+		}
+
+		systemCurrent += currentRec.AvgRides
+		comparisons = append(comparisons, cmp)
+	}
+
+	result := &RoutesComparisonResult{
+		CurrentMonth:      month,
+		BenchmarkMonth:    preCovid,
+		YearAgoMonth:      yearAgo,
+		FiveYearsAgoMonth: fiveYearsAgo,
+		SystemCurrent:     systemCurrent,
+		Routes:            comparisons,
+	}
+	if hasPreCovid && systemPreCovid > 0 {
+		result.SystemPreCovid = &systemPreCovid
+		result.SystemRecovery = recoveryPct(systemCurrent, systemPreCovid)
+	}
+
+	return result, nil
+}
+
+func offsetMonth(month time.Time, years int) time.Time {
+	return time.Date(month.Year()-years, month.Month(), 1, 0, 0, 0, 0, time.UTC)
+}
+
+func preCovidMonth(month time.Time) time.Time {
+	return time.Date(2019, month.Month(), 1, 0, 0, 0, 0, time.UTC)
+}
+
+func pctChange(current, baseline float64) *float64 {
+	if baseline == 0 {
+		return nil
+	}
+	v := ((current - baseline) / baseline) * 100
+	return &v
+}
+
+func recoveryPct(current, baseline float64) *float64 {
+	if baseline == 0 {
+		return nil
+	}
+	v := (current / baseline) * 100
+	return &v
+}
+
 func (s *RouteService) ImportRidership(records []business.RidershipRecord) error {
 	return s.ridershipRepo.UpsertBatch(records)
 }

@@ -90,6 +90,7 @@ const RouteTooltip = ({ data, x, y, rank }: Props) => (
         ? <SingleView properties={data.properties} />
         : <CorridorView local={data.local} express={data.express} />
       }
+      <p className="text-[10px] text-gray-600 mt-3">Click route on map for details</p>
     </div>
   </div>
 )
