@@ -5,14 +5,10 @@ import RouteMap from './components/RouteMap'
 import SystemOverview from './pages/SystemOverview'
 import RoutesPage from './pages/RoutesPage'
 import RoutePage from './pages/RoutePage'
-import { initAnalytics, trackPageView } from './lib/analytics'
+import { trackPageView } from './lib/analytics'
 
 const Analytics = () => {
   const location = useLocation()
-
-  useEffect(() => {
-    initAnalytics()
-  }, [])
 
   useEffect(() => {
     trackPageView(location.pathname + location.search)
