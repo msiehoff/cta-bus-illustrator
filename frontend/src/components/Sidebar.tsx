@@ -39,62 +39,71 @@ const ClockIcon = () => (
   </svg>
 )
 
-const navItems: NavItem[] = [
+export const navItems: NavItem[] = [
   { to: '/',        label: 'Map',             icon: <MapIcon />   },
   { to: '/system',  label: 'System Overview', icon: <ChartIcon /> },
   { to: '/routes',  label: 'Routes',          icon: <ListIcon />  },
 ]
 
-export default function Sidebar() {
-  return (
-    <aside className="w-56 shrink-0 bg-gray-950 border-r border-gray-800 flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-start gap-2.5 px-4 py-3 border-b border-gray-800">
-        <BusIcon size={24} className="text-red-500 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-semibold text-white leading-tight">Chicago Transit Lab</p>
-          <p className="text-xs text-gray-500 mt-0.5">Bus Ridership</p>
+interface SidebarContentProps {
+  onNavClick?: () => void
+}
+
+export const SidebarContent = ({ onNavClick }: SidebarContentProps) => (
+  <>
+    <div className="flex items-start gap-2.5 px-4 py-3 border-b border-gray-800">
+      <BusIcon size={24} className="text-red-500 shrink-0 mt-0.5" />
+      <div>
+        <p className="text-sm font-semibold text-white leading-tight">Chicago Transit Lab</p>
+        <p className="text-xs text-gray-500 mt-0.5">Bus Ridership</p>
+      </div>
+    </div>
+
+    <nav className="flex-1 py-2">
+      <p className="px-4 pt-2 pb-1 text-[10px] uppercase tracking-widest text-gray-600">Main</p>
+      {navItems.map(item => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          end={item.to === '/'}
+          onClick={onNavClick}
+          className={({ isActive }) =>
+            `flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${
+              isActive
+                ? 'text-red-400 bg-red-950/40'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <span className={isActive ? 'text-red-500' : 'text-gray-500'}>
+                {item.icon}
+              </span>
+              {item.label}
+            </>
+          )}
+        </NavLink>
+      ))}
+
+      <div className="border-t border-gray-800 mt-2 pt-2">
+        <p className="px-4 pt-1 pb-1 text-[10px] uppercase tracking-widest text-gray-600">Coming Soon</p>
+        <div className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 cursor-not-allowed">
+          <span className="text-gray-700"><ClockIcon /></span>
+          Headway
+          <span className="ml-auto text-[10px] bg-gray-800 text-gray-600 px-1.5 py-0.5 rounded-full">
+            Soon
+          </span>
         </div>
       </div>
+    </nav>
+  </>
+)
 
-      {/* Nav */}
-      <nav className="flex-1 py-2">
-        <p className="px-4 pt-2 pb-1 text-[10px] uppercase tracking-widest text-gray-600">Main</p>
-        {navItems.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${
-                isActive
-                  ? 'text-red-400 bg-red-950/40'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <span className={isActive ? 'text-red-500' : 'text-gray-500'}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </>
-            )}
-          </NavLink>
-        ))}
+const Sidebar = () => (
+  <aside className="hidden md:flex w-56 shrink-0 bg-gray-950 border-r border-gray-800 flex-col h-full">
+    <SidebarContent />
+  </aside>
+)
 
-        <div className="border-t border-gray-800 mt-2 pt-2">
-          <p className="px-4 pt-1 pb-1 text-[10px] uppercase tracking-widest text-gray-600">Coming Soon</p>
-          <div className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 cursor-not-allowed">
-            <span className="text-gray-700"><ClockIcon /></span>
-            Headway
-            <span className="ml-auto text-[10px] bg-gray-800 text-gray-600 px-1.5 py-0.5 rounded-full">
-              Soon
-            </span>
-          </div>
-        </div>
-      </nav>
-    </aside>
-  )
-}
+export default Sidebar

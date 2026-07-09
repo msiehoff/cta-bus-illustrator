@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { TooltipData } from './RouteMap'
 import type { RouteProperties } from '../types/api'
 
@@ -6,9 +7,11 @@ interface Props {
   x: number
   y: number
   rank?: number
+  isCoarsePointer?: boolean
 }
 
 const OFFSET = 14
+const TOOLTIP_WIDTH = 240
 
 const RouteIdBadge = ({ routeId }: { routeId: string }) => (
   <span className="shrink-0 inline-flex items-center bg-blue-600 text-white text-xs font-mono font-bold px-2 py-0.5 rounded-full leading-none">
@@ -79,20 +82,55 @@ const CorridorView = ({ local, express }: { local: RouteProperties; express: Rou
   )
 }
 
-const RouteTooltip = ({ data, x, y, rank }: Props) => (
-  <div
-    className="absolute z-10 pointer-events-none"
-    style={{ left: x + OFFSET, top: y + OFFSET }}
-  >
-    <div className="bg-gray-900 border border-gray-700/60 rounded-xl shadow-2xl p-4 w-60">
-      {rank !== undefined && <RankBanner rank={rank} />}
-      {data.type === 'single'
-        ? <SingleView properties={data.properties} />
-        : <CorridorView local={data.local} express={data.express} />
-      }
-      <p className="text-[10px] text-gray-600 mt-3">Click route on map for details</p>
+const RouteTooltip = ({ data, x, y, rank, isCoarsePointer = false }: Props) => {
+  const tooltipRef = useRef<HTMLDivElement>(null)
+  const [position, setPosition] = useState({ left: x + OFFSET, top: y + OFFSET })
+
+  useLayoutEffect(() => {
+    const el = tooltipRef.current
+    if (!el) return
+
+    const parent = el.offsetParent as HTMLElement | null
+    const bounds = parent?.getBoundingClientRect() ?? {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }
+    const tooltipHeight = el.offsetHeight
+    const padding = 8
+
+    let left = x + OFFSET
+    let top = y + OFFSET
+
+    if (left + TOOLTIP_WIDTH > bounds.width - padding) {
+      left = Math.max(padding, x - TOOLTIP_WIDTH - OFFSET)
+    }
+    if (top + tooltipHeight > bounds.height - padding) {
+      top = Math.max(padding, y - tooltipHeight - OFFSET)
+    }
+
+    setPosition({ left, top })
+  }, [x, y, data, rank])
+
+  return (
+    <div
+      ref={tooltipRef}
+      className="absolute z-10 pointer-events-none"
+      style={{ left: position.left, top: position.top }}
+    >
+      <div className="bg-gray-900 border border-gray-700/60 rounded-xl shadow-2xl p-4 w-60">
+        {rank !== undefined && <RankBanner rank={rank} />}
+        {data.type === 'single'
+          ? <SingleView properties={data.properties} />
+          : <CorridorView local={data.local} express={data.express} />
+        }
+        <p className="text-[10px] text-gray-600 mt-3">
+          {isCoarsePointer
+            ? 'Tap again to open route details'
+            : 'Click route on map for details'}
+        </p>
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 export default RouteTooltip

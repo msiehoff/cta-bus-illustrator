@@ -136,7 +136,7 @@ const RoutesComparisonTable = ({
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
       {showHeader && (
-        <div className="px-5 py-3 border-b border-gray-800 flex items-center justify-between gap-3 flex-wrap">
+        <div className="px-4 sm:px-5 py-3 border-b border-gray-800 flex items-center justify-between gap-3 flex-wrap">
           <span className="text-xs text-gray-500">{filtered.length} routes</span>
           {onSearchChange && (
             <input
@@ -144,7 +144,7 @@ const RoutesComparisonTable = ({
               placeholder="Search routes…"
               value={search}
               onChange={e => onSearchChange(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-md px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 w-44"
+              className="bg-gray-800 border border-gray-700 rounded-md px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 w-full sm:w-44"
             />
           )}
         </div>

@@ -79,7 +79,7 @@ const SystemOverview = () => {
   )
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
       <div className="mb-5">
         <h1 className="text-xl font-semibold text-white">System Overview</h1>
         <p className="text-sm text-gray-400 mt-0.5">
@@ -97,7 +97,7 @@ const SystemOverview = () => {
       />
 
       {latest && (
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           <StatCard label={`Total weekday riders · ${formatMonth(latest.month)}`} {...statProps('weekday')} />
           <StatCard label={`Total Saturday riders · ${formatMonth(latest.month)}`} {...statProps('saturday')} />
           <StatCard label={`Total Sunday riders · ${formatMonth(latest.month)}`} {...statProps('sunday')} />
@@ -118,7 +118,7 @@ const SystemOverview = () => {
       {comparison && <TopMoversPanel routes={comparison.routes} />}
 
       {comparison && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
           <h2 className="text-sm font-medium text-white mb-1">Route ridership distribution</h2>
           <p className="text-xs text-gray-500 mb-2">
             How avg daily {ridershipType} ridership is spread across the network · {formatMonth(comparison.currentMonth)}
@@ -132,19 +132,19 @@ const SystemOverview = () => {
       )}
 
       <div className="grid lg:grid-cols-2 gap-3 mb-5">
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4">
           <h2 className="text-sm font-medium text-white mb-1">Pre-pandemic recovery distribution</h2>
           <p className="text-xs text-gray-500 mb-4">Routes grouped by ridership vs same month in 2019</p>
           <RecoveryDistributionChart data={distribution} />
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4">
           <h2 className="text-sm font-medium text-white mb-1">Ridership vs pre-pandemic</h2>
           <p className="text-xs text-gray-500 mb-4">Each dot is a route · click to open detail</p>
           <RecoveryScatterChart data={scatter} />
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+      <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-1">Seasonality</h2>
         <p className="text-xs text-gray-500 mb-4">
           Average {ridershipType} ridership by calendar month across all years
@@ -152,7 +152,7 @@ const SystemOverview = () => {
         <SeasonalityChart data={seasonality} />
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+      <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-4">System ridership over time</h2>
         {loading && <div className="text-gray-500 text-sm py-10 text-center">Loading…</div>}
         {error && <div className="text-red-400 text-sm py-10 text-center">Failed to load: {error}</div>}

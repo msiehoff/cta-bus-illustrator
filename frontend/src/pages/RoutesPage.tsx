@@ -19,7 +19,7 @@ const RoutesPage = () => {
   const [search, setSearch] = useState('')
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
       <div className="mb-5">
         <h1 className="text-xl font-semibold text-white">Routes</h1>
         <p className="text-sm text-gray-400 mt-0.5">

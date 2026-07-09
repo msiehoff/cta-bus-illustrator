@@ -64,7 +64,7 @@ const RecoveryBanner = ({
   const barWidth = Math.min(recovery, 100)
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+    <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs text-gray-500 uppercase tracking-wide">{title}</p>
