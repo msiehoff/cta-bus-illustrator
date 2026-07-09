@@ -5,6 +5,7 @@ import type { LayerProps } from 'react-map-gl/maplibre'
 import type { GetRoutesResponse, RouteProperties, RidershipType } from '../types/api'
 import { ridershipColorExpression } from '../lib/ridershipColors'
 import { EXPRESS_PAIRS } from '../lib/expressPairs'
+import useMediaQuery from '../hooks/useMediaQuery'
 import RouteTooltip from './RouteTooltip'
 import FilterBar from './FilterBar'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -62,6 +63,28 @@ interface HoveredRoute {
 const findRouteProperties = (routeId: string, routes: GetRoutesResponse): RouteProperties | null =>
   (routes.features.find(f => f.properties.routeId === routeId)?.properties) ?? null
 
+const buildTooltipData = (
+  props: RouteProperties,
+  routes: GetRoutesResponse | null,
+): TooltipData => {
+  const pairedId = EXPRESS_PAIRS[props.routeId]
+  if (pairedId && routes) {
+    const pairedProps = findRouteProperties(pairedId, routes)
+    if (pairedProps) {
+      const isExpress = props.routeId.startsWith('X')
+      return {
+        type: 'corridor',
+        local: isExpress ? pairedProps : props,
+        express: isExpress ? props : pairedProps,
+      }
+    }
+  }
+  return { type: 'single', properties: props }
+}
+
+const getTooltipRouteId = (data: TooltipData): string =>
+  data.type === 'single' ? data.properties.routeId : data.local.routeId
+
 const computeRankedEntries = (routes: GetRoutesResponse): RankedEntry[] => {
   const seen = new Set<string>()
   const entries: Array<{ data: TooltipData; totalRides: number }> = []
@@ -102,8 +125,10 @@ const computeRankedEntries = (routes: GetRoutesResponse): RankedEntry[] => {
 
 const RouteMap = () => {
   const mapRef = useRef<MapRef>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const isCoarsePointer = useMediaQuery('(pointer: coarse)')
   const [routes, setRoutes] = useState<GetRoutesResponse | null>(null)
   const [hoveredRoute, setHoveredRoute] = useState<HoveredRoute | null>(null)
 
@@ -112,14 +137,11 @@ const RouteMap = () => {
   const [ridershipType, setRidershipType] = useState<RidershipType>('weekday')
   const [monthsLoaded, setMonthsLoaded] = useState(false)
 
-  // Highlight state: ids = route IDs to illuminate, key = timestamp to re-trigger same route.
   const [highlight, setHighlight] = useState<{ ids: string[]; key: number } | null>(null)
   const [highlightVisible, setHighlightVisible] = useState(true)
 
-  // Top 10 ranked corridors/routes derived from current ridership data.
   const rankedEntries = useMemo(() => routes ? computeRankedEntries(routes) : [], [routes])
 
-  // Quick lookup: routeId → rank (both IDs of a corridor pair map to the same rank).
   const rankByRouteId = useMemo(() => {
     const map: Record<string, number> = {}
     for (const entry of rankedEntries) {
@@ -133,7 +155,6 @@ const RouteMap = () => {
     return map
   }, [rankedEntries])
 
-  // Blink the highlight layer 4 times over ~2 seconds, then clear.
   useEffect(() => {
     if (!highlight) return
     setHighlightVisible(true)
@@ -148,7 +169,16 @@ const RouteMap = () => {
       }
     }, 250)
     return () => clearInterval(interval)
-  }, [highlight?.key]) // key changes on every click, so same route can re-trigger
+  }, [highlight?.key])
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const resizeMap = () => mapRef.current?.resize()
+    const observer = new ResizeObserver(resizeMap)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const onRouteListClick = useCallback((entry: RankedEntry) => {
     const ids = entry.data.type === 'single'
@@ -157,7 +187,6 @@ const RouteMap = () => {
     setHighlight({ ids, key: Date.now() })
   }, [])
 
-  // Fetch available ridership months once on mount.
   useEffect(() => {
     const fetchMonths = async () => {
       const res = await fetch('/api/v1/ridership/months')
@@ -188,7 +217,6 @@ const RouteMap = () => {
     setHighlight({ ids, key: Date.now() })
   }, [monthsLoaded, searchParams])
 
-  // Re-fetch routes whenever the selected month or ridership type changes.
   useEffect(() => {
     if (!monthsLoaded) return
     const fetchRoutes = async () => {
@@ -205,7 +233,21 @@ const RouteMap = () => {
     mapRef.current?.resize()
   }, [])
 
+  const showRouteAtPoint = useCallback((
+    props: RouteProperties,
+    x: number,
+    y: number,
+  ) => {
+    setHoveredRoute({
+      data: buildTooltipData(props, routes),
+      x,
+      y,
+    })
+  }, [routes])
+
   const onMouseMove = useCallback((e: MapLayerMouseEvent) => {
+    if (isCoarsePointer) return
+
     const canvas = mapRef.current?.getCanvas()
     const feature = e.features?.[0]
 
@@ -216,42 +258,42 @@ const RouteMap = () => {
     }
 
     if (canvas) canvas.style.cursor = 'pointer'
-    const props = feature.properties as RouteProperties
-    const { x, y } = e.point
-
-    const pairedId = EXPRESS_PAIRS[props.routeId]
-    if (pairedId && routes) {
-      const pairedProps = findRouteProperties(pairedId, routes)
-      if (pairedProps) {
-        const isExpress = props.routeId.startsWith('X')
-        setHoveredRoute({
-          data: {
-            type: 'corridor',
-            local: isExpress ? pairedProps : props,
-            express: isExpress ? props : pairedProps,
-          },
-          x,
-          y,
-        })
-        return
-      }
-    }
-
-    setHoveredRoute({ data: { type: 'single', properties: props }, x, y })
-  }, [routes])
+    showRouteAtPoint(feature.properties as RouteProperties, e.point.x, e.point.y)
+  }, [isCoarsePointer, showRouteAtPoint])
 
   const onMouseLeave = useCallback(() => {
+    if (isCoarsePointer) return
+
     const canvas = mapRef.current?.getCanvas()
     if (canvas) canvas.style.cursor = ''
     setHoveredRoute(null)
-  }, [])
+  }, [isCoarsePointer])
 
   const onMapClick = useCallback((e: MapLayerMouseEvent) => {
     const feature = e.features?.[0]
-    if (!feature?.properties) return
+
+    if (!feature?.properties) {
+      if (isCoarsePointer) setHoveredRoute(null)
+      return
+    }
+
     const props = feature.properties as RouteProperties
+
+    if (isCoarsePointer) {
+      const tappedId = props.routeId
+      const currentId = hoveredRoute ? getTooltipRouteId(hoveredRoute.data) : null
+
+      if (currentId === tappedId) {
+        navigate(`/routes/${props.routeId}`, { state: { routeName: props.routeName } })
+        return
+      }
+
+      showRouteAtPoint(props, e.point.x, e.point.y)
+      return
+    }
+
     navigate(`/routes/${props.routeId}`, { state: { routeName: props.routeName } })
-  }, [navigate])
+  }, [hoveredRoute, isCoarsePointer, navigate, showRouteAtPoint])
 
   const hoveredRank = hoveredRoute
     ? hoveredRoute.data.type === 'single'
@@ -260,7 +302,7 @@ const RouteMap = () => {
     : undefined
 
   return (
-    <div className="relative w-full h-full">
+    <div ref={containerRef} className="relative w-full h-full">
       <Map
         ref={mapRef}
         initialViewState={{ ...CHICAGO_CENTER, zoom: 11 }}
@@ -286,7 +328,6 @@ const RouteMap = () => {
                   'line-color': '#ffffff',
                   'line-width': 14,
                   'line-opacity': highlightVisible ? 0.8 : 0,
-                  // Disable MapLibre's default 300 ms transition so blinks are sharp.
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   'line-opacity-transition': { duration: 0, delay: 0 } as any,
                   'line-blur': 3,
@@ -305,6 +346,7 @@ const RouteMap = () => {
         onMonthChange={setSelectedMonth}
         onTypeChange={setRidershipType}
         onRouteClick={onRouteListClick}
+        onExpandedChange={() => mapRef.current?.resize()}
       />
 
       {hoveredRoute && (
@@ -313,6 +355,7 @@ const RouteMap = () => {
           x={hoveredRoute.x}
           y={hoveredRoute.y}
           rank={hoveredRank}
+          isCoarsePointer={isCoarsePointer}
         />
       )}
     </div>

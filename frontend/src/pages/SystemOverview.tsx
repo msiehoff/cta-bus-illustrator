@@ -97,7 +97,7 @@ const SystemOverview = () => {
       />
 
       {latest && (
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           <StatCard label={`Total weekday riders · ${formatMonth(latest.month)}`} {...statProps('weekday')} />
           <StatCard label={`Total Saturday riders · ${formatMonth(latest.month)}`} {...statProps('saturday')} />
           <StatCard label={`Total Sunday riders · ${formatMonth(latest.month)}`} {...statProps('sunday')} />
