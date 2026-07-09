@@ -141,7 +141,7 @@ export default function RidershipChart({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
         <div className="flex gap-4 flex-wrap">
           {visibleLines.map(cfg => (
             <div key={cfg.key} className="flex items-center gap-1.5">
@@ -162,12 +162,12 @@ export default function RidershipChart({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           {WINDOWS.map(win => (
             <button
               key={win.key}
               onClick={() => onWindowChange(win.key)}
-              className={`px-2.5 py-1 rounded-md text-xs transition-colors ${
+              className={`px-2.5 py-1.5 rounded-md text-xs transition-colors ${
                 w === win.key
                   ? 'bg-gray-700 text-white'
                   : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'

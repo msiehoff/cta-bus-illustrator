@@ -74,7 +74,7 @@ const RoutePage = () => {
   )
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 mb-4 transition-colors"
@@ -159,7 +159,7 @@ const RoutePage = () => {
         />
       )}
 
-      <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+      <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-4">Ridership over time</h2>
         {loading && <div className="text-gray-500 text-sm py-10 text-center">Loading…</div>}
         {error && <div className="text-red-400 text-sm py-10 text-center">Failed to load: {error}</div>}
@@ -181,7 +181,7 @@ const RoutePage = () => {
       </div>
 
       {comparison && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-5">
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
           <h2 className="text-sm font-medium text-white mb-1">Where this route falls</h2>
           <p className="text-xs text-gray-500 mb-2">
             Network ridership distribution · {formatMonth(comparison.currentMonth)} · {ridershipType}
@@ -196,19 +196,19 @@ const RoutePage = () => {
       )}
 
       <div className="grid lg:grid-cols-2 gap-3 mb-5">
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4">
           <h2 className="text-sm font-medium text-white mb-1">Seasonality</h2>
           <p className="text-xs text-gray-500 mb-4">Avg {ridershipType} ridership by calendar month</p>
           <SeasonalityChart data={seasonality} />
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4">
           <h2 className="text-sm font-medium text-white mb-1">Weekend share</h2>
           <p className="text-xs text-gray-500 mb-4">(Sat + Sun) / weekday ridership over time</p>
           <WeekendShareChart data={weekendShare} />
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-dashed border-gray-700 rounded-lg px-5 py-4 opacity-60 flex items-center gap-4">
+      <div className="bg-gray-900 border border-dashed border-gray-700 rounded-lg px-4 sm:px-5 py-4 opacity-60 flex items-center gap-4">
         <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center shrink-0">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />

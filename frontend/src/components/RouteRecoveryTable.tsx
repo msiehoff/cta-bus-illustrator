@@ -32,7 +32,7 @@ const RouteRecoveryTable = ({
   rows,
 }: Props) => (
   <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden mb-5">
-    <div className="px-5 py-3 border-b border-gray-800">
+    <div className="px-4 sm:px-5 py-3 border-b border-gray-800">
       <h2 className="text-sm font-medium text-white">Ridership comparison</h2>
       <p className="text-xs text-gray-500 mt-0.5">
         Same calendar month comparisons · {formatMonth(currentMonth)} · pre-pandemic = same month in 2019
