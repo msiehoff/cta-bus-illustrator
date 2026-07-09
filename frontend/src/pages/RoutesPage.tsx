@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRoutesComparison } from '../hooks/useRoutesComparison'
 import { useRidershipFilters } from '../hooks/useRidershipFilters'
 import RoutesComparisonTable from '../components/RoutesComparisonTable'
 import RecoveryBanner from '../components/RecoveryBanner'
 import RidershipFilters from '../components/RidershipFilters'
+import { appendCorridorRows } from '../lib/corridors'
 import { formatMonth } from '../lib/ridershipUtils'
 
 const RoutesPage = () => {
@@ -17,6 +18,11 @@ const RoutesPage = () => {
   } = useRidershipFilters()
   const { data, loading } = useRoutesComparison(ridershipType, selectedMonth)
   const [search, setSearch] = useState('')
+
+  const routesWithCorridors = useMemo(
+    () => appendCorridorRows(data?.routes ?? []),
+    [data?.routes],
+  )
 
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto">
@@ -49,7 +55,7 @@ const RoutesPage = () => {
       )}
 
       <RoutesComparisonTable
-        routes={data?.routes ?? []}
+        routes={routesWithCorridors}
         loading={loading}
         search={search}
         onSearchChange={setSearch}

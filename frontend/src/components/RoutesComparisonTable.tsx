@@ -8,6 +8,13 @@ import {
   recoveryColorClass,
 } from '../lib/ridershipUtils'
 import type { RouteComparison } from '../types/api'
+import {
+  getCorridorBadgeLabel,
+  getCorridorRoutePath,
+  isCorridorRouteId,
+  matchesCorridorSearch,
+  parseCorridorLocalId,
+} from '../lib/corridors'
 
 type SortColumn = 'route' | 'current' | 'recovery' | 'yearAgo' | 'fiveYear'
 
@@ -52,13 +59,14 @@ const RoutesComparisonTable = ({
         : { column, dir: column === 'route' ? 'asc' : 'desc' },
     )
 
-  const filtered = useMemo(
-    () => routes.filter(r =>
-      r.routeName.toLowerCase().includes(search.toLowerCase()) ||
-      r.routeId.includes(search),
-    ),
-    [routes, search],
-  )
+  const filtered = useMemo(() => {
+    const searchLower = search.toLowerCase()
+    return routes.filter(r =>
+      r.routeName.toLowerCase().includes(searchLower) ||
+      r.routeId.toLowerCase().includes(searchLower) ||
+      matchesCorridorSearch(r, search),
+    )
+  }, [routes, search])
 
   const sorted = useMemo(() => {
     const copy = [...filtered]
@@ -176,19 +184,39 @@ const RoutesComparisonTable = ({
               </tr>
             </thead>
             <tbody>
-              {sorted.map((route, i) => (
+              {sorted.map((route, i) => {
+                const localId = parseCorridorLocalId(route.routeId)
+                const isCorridor = isCorridorRouteId(route.routeId)
+                const badgeLabel = isCorridor && localId
+                  ? getCorridorBadgeLabel(localId)
+                  : route.routeId
+                const routePath = isCorridor && localId
+                  ? getCorridorRoutePath(localId)
+                  : `/routes/${route.routeId}`
+
+                return (
                 <tr
                   key={route.routeId}
-                  onClick={() => navigate(`/routes/${route.routeId}`, { state: { routeName: route.routeName } })}
+                  onClick={() => navigate(routePath, { state: { routeName: route.routeName } })}
                   className="border-t border-gray-800 hover:bg-gray-800/40 cursor-pointer transition-colors"
                 >
                   <td className="px-5 py-2.5 text-gray-600 text-xs">{i + 1}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2.5">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-900 text-blue-300 text-[10px] font-semibold shrink-0">
-                        {route.routeId}
+                      <span className={twMerge(
+                        'inline-flex items-center justify-center rounded-full bg-blue-900 text-blue-300 font-semibold shrink-0',
+                        isCorridor
+                          ? 'h-6 px-1.5 text-[9px]'
+                          : 'w-6 h-6 text-[10px]',
+                      )}>
+                        {badgeLabel}
                       </span>
-                      <span className="text-white">{route.routeName}</span>
+                      <div className="min-w-0">
+                        <span className="text-white">{route.routeName}</span>
+                        {isCorridor && (
+                          <p className="text-[10px] text-gray-500 mt-0.5">Express + Local</p>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-right text-gray-300">
@@ -210,7 +238,7 @@ const RoutesComparisonTable = ({
                     {formatDelta(route.fiveYearPct)}
                   </td>
                 </tr>
-              ))}
+              )})}
               {sorted.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-5 py-8 text-center text-gray-600 text-xs">

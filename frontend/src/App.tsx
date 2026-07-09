@@ -6,6 +6,7 @@ import RouteMap from './components/RouteMap'
 import SystemOverview from './pages/SystemOverview'
 import RoutesPage from './pages/RoutesPage'
 import RoutePage from './pages/RoutePage'
+import CorridorRoutePage from './pages/CorridorRoutePage'
 import { trackPageView } from './lib/analytics'
 
 const Analytics = () => {
@@ -61,6 +62,7 @@ const AppShell = () => {
             <Route path="/" element={<RouteMap />} />
             <Route path="/system" element={<SystemOverview />} />
             <Route path="/routes" element={<RoutesPage />} />
+            <Route path="/routes/corridor/:localId" element={<CorridorRoutePage />} />
             <Route path="/routes/:externalId" element={<RoutePage />} />
           </Routes>
         </main>

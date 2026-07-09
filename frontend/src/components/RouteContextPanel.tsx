@@ -7,7 +7,8 @@ import {
   getRouteRank,
   recoveryColorClass,
 } from '../lib/ridershipUtils'
-import { getPairedRouteId } from '../lib/expressPairs'
+import { getCorridorRoutePath, getCorridorDisplayName, isCorridorRouteId, parseCorridorLocalId } from '../lib/corridors'
+import { getPairedRouteId, isExpressRoute } from '../lib/expressPairs'
 
 interface Props {
   routeId: string
@@ -31,8 +32,11 @@ const RouteContextPanel = ({
   const pairedId = getPairedRouteId(routeId)
   const pairedRoute = pairedId ? comparison.find(r => r.routeId === pairedId) : undefined
   const currentRoute = comparison.find(r => r.routeId === routeId)
+  const isCorridor = isCorridorRouteId(routeId)
+  const mapRouteId = isCorridor ? parseCorridorLocalId(routeId) ?? routeId : routeId
+  const corridorLocalId = isExpressRoute(routeId) ? pairedId : routeId
 
-  const mapLink = `/?route=${encodeURIComponent(routeId)}&month=${selectedMonth}&type=${ridershipType}`
+  const mapLink = `/?route=${encodeURIComponent(mapRouteId)}&month=${selectedMonth}&type=${ridershipType}`
 
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
@@ -59,13 +63,24 @@ const RouteContextPanel = ({
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
           </svg>
-          Show {routeId} on map
+          Show {isCorridor ? 'corridor' : routeId} on map
         </Link>
       </div>
 
-      {pairedRoute && currentRoute && (
+      {pairedRoute && currentRoute && !isCorridor && (
         <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 sm:col-span-2 lg:col-span-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Corridor (local + express)</p>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Corridor (local + express)</p>
+            <Link
+              to={corridorLocalId ? getCorridorRoutePath(corridorLocalId) : '#'}
+              state={{ routeName: getCorridorDisplayName(
+                isExpressRoute(routeId) ? (pairedRoute?.routeName ?? routeName) : routeName,
+              ) }}
+              className="text-xs text-red-400 hover:text-red-300 transition-colors"
+            >
+              View corridor page →
+            </Link>
+          </div>
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <div>
               <span className="text-gray-400">{routeName}</span>
