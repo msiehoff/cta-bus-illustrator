@@ -3,8 +3,10 @@ package fake
 import (
 	"context"
 	"log"
+	"sort"
 	"sync"
 
+	"github.com/msiehoff/cta-bus-illustrator/backend/app"
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
 )
 
@@ -24,6 +26,55 @@ func (r *ArrivalRepo) SaveArrival(_ context.Context, arrival business.Arrival) e
 		arrival.VehicleID, arrival.RouteID, arrival.Direction, arrival.StopID,
 		arrival.Timestamp.Format("15:04:05"))
 	return nil
+}
+
+func (r *ArrivalRepo) ListArrivals(_ context.Context, filter app.ArrivalFilter) ([]business.Arrival, error) {
+	all := r.filteredArrivals(filter)
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+
+	start := filter.Offset
+	if start >= len(all) {
+		return []business.Arrival{}, nil
+	}
+	end := start + limit
+	if end > len(all) {
+		end = len(all)
+	}
+
+	out := make([]business.Arrival, end-start)
+	copy(out, all[start:end])
+	return out, nil
+}
+
+func (r *ArrivalRepo) CountArrivals(_ context.Context, filter app.ArrivalFilter) (int64, error) {
+	return int64(len(r.filteredArrivals(filter))), nil
+}
+
+func (r *ArrivalRepo) filteredArrivals(filter app.ArrivalFilter) []business.Arrival {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	matches := make([]business.Arrival, 0, len(r.Arrivals))
+	for _, arrival := range r.Arrivals {
+		if filter.RouteID != "" && arrival.RouteID != filter.RouteID {
+			continue
+		}
+		if filter.Direction != "" && arrival.Direction != filter.Direction {
+			continue
+		}
+		matches = append(matches, arrival)
+	}
+
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].Timestamp.After(matches[j].Timestamp)
+	})
+	return matches
 }
 
 // All returns a snapshot of all saved arrivals (safe for concurrent use).

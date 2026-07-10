@@ -60,3 +60,38 @@ export interface GetRoutesComparisonResponse {
   systemRecovery?: number
   routes: RouteComparison[]
 }
+
+// --- Admin endpoints ---
+
+export interface AdminSessionResponse {
+  authenticated: boolean
+  username?: string
+}
+
+export interface PipelineStatusResponse {
+  enabled: boolean
+  running: boolean
+  routes: string[]
+  routeCount: number
+  pollInterval: string
+  lastPollAt?: string
+  lastPingCount: number
+  lastError?: string
+  startedAt?: string
+  arrivalCount: number
+}
+
+export interface ArrivalRecord {
+  stopId: string
+  routeId: string
+  direction: string
+  vehicleId: string
+  timestamp: string
+}
+
+export interface ListArrivalsResponse {
+  arrivals: ArrivalRecord[]
+  total: number
+  limit: number
+  offset: number
+}
