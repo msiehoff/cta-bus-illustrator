@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"math"
-	"time"
 
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
 )
@@ -71,9 +70,9 @@ func (d *ArrivalDetector) ProcessPing(ctx context.Context, ping business.Vehicle
 		return
 	}
 
-	if nearest.StopID == state.LastStopID {
-		// Already recorded this stop for this vehicle; check cooldown.
-		if time.Since(state.LastArrivalTime).Minutes() < ArrivalCooldownMinutes {
+	if nearest.StopID == state.LastStopID && !state.LastArrivalTime.IsZero() {
+		// Already recorded this stop for this vehicle; check cooldown using ping time.
+		if ping.Timestamp.Sub(state.LastArrivalTime).Minutes() < ArrivalCooldownMinutes {
 			return
 		}
 	}

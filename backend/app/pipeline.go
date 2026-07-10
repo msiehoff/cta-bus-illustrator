@@ -20,3 +20,8 @@ type CTAVehicleClient interface {
 type ArrivalRepository interface {
 	SaveArrival(ctx context.Context, arrival business.Arrival) error
 }
+
+// StopRepository is the port for persisting stop metadata loaded from the CTA API.
+type StopRepository interface {
+	UpsertStops(ctx context.Context, stops []business.Stop) error
+}

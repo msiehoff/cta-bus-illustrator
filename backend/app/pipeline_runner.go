@@ -28,25 +28,40 @@ type PipelineConfig struct {
 type PipelineRunner struct {
 	client   CTAVehicleClient
 	detector *ArrivalDetector
+	stops    StopRepository
 	cfg      PipelineConfig
+	status   *pipelineStatusTracker
 }
 
 // NewPipelineRunner creates a runner wired to the given client and arrival repo.
-func NewPipelineRunner(client CTAVehicleClient, repo ArrivalRepository, cfg PipelineConfig) *PipelineRunner {
+// stops may be nil; when set, loaded stops are upserted to the database.
+func NewPipelineRunner(client CTAVehicleClient, repo ArrivalRepository, stops StopRepository, cfg PipelineConfig) *PipelineRunner {
 	if len(cfg.Directions) == 0 {
 		cfg.Directions = []string{"Northbound", "Southbound", "Eastbound", "Westbound"}
+	}
+	if cfg.PollInterval == 0 {
+		cfg.PollInterval = 30 * time.Second
 	}
 	return &PipelineRunner{
 		client:   client,
 		detector: NewArrivalDetector(repo),
+		stops:    stops,
 		cfg:      cfg,
+		status:   newPipelineStatusTracker(cfg),
 	}
+}
+
+// Status returns a snapshot of pipeline health for observability.
+func (r *PipelineRunner) Status() PipelineStatus {
+	return r.status.snapshot()
 }
 
 // Run starts the pipeline and blocks until ctx is cancelled.
 // Stop loading runs once at startup; vehicle polling then loops on PollInterval.
 func (r *PipelineRunner) Run(ctx context.Context) error {
 	log.Printf("pipeline: starting — routes=%v poll_interval=%v", r.cfg.RouteIDs, r.cfg.PollInterval)
+	r.status.setRunning(true)
+	defer r.status.setRunning(false)
 
 	if err := r.loadAllStops(ctx); err != nil {
 		// Non-fatal: log and continue. Pings for routes with missing stops are skipped.
@@ -73,18 +88,25 @@ func (r *PipelineRunner) Run(ctx context.Context) error {
 // poll fetches vehicle pings for all configured routes and feeds them through the detector.
 // The CTA API accepts up to 10 route IDs per call, so routes are batched automatically.
 func (r *PipelineRunner) poll(ctx context.Context) {
+	var totalPings int
+	var pollErr error
+
 	batches := chunkStrings(r.cfg.RouteIDs, 10)
 	for _, batch := range batches {
 		pings, err := r.client.GetVehicles(ctx, batch)
 		if err != nil {
 			log.Printf("pipeline: getvehicles error routes=%v: %v", batch, err)
+			pollErr = err
 			continue
 		}
 		log.Printf("pipeline: received %d pings for routes %v", len(pings), batch)
+		totalPings += len(pings)
 		for _, ping := range pings {
 			r.detector.ProcessPing(ctx, ping)
 		}
 	}
+
+	r.status.recordPoll(totalPings, pollErr)
 }
 
 // loadAllStops fetches and caches stops for every configured route+direction combination.
@@ -97,6 +119,11 @@ func (r *PipelineRunner) loadAllStops(ctx context.Context) error {
 				continue
 			}
 			r.detector.LoadStops(routeID, dir, stops)
+			if r.stops != nil {
+				if err := r.stops.UpsertStops(ctx, stops); err != nil {
+					log.Printf("pipeline: upsert stops route=%s dir=%s: %v", routeID, dir, err)
+				}
+			}
 			log.Printf("pipeline: loaded %d stops route=%s dir=%s", len(stops), routeID, dir)
 		}
 	}
