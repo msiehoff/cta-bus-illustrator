@@ -224,7 +224,7 @@ How the pipeline process runs in production and locally.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PIPELINE_ENABLED` | `false` | Start the ingestion pipeline on app boot |
-| `PIPELINE_ROUTES` | `8,66` | Comma-separated route IDs to monitor |
+| `PIPELINE_ROUTES` | *(unset)* | Comma-separated route IDs. When unset, routes are resolved from the latest ridership import |
 | `PIPELINE_POLL_INTERVAL` | `30s` | How often to poll `getvehicles` |
 | `PIPELINE_USE_FAKE_CTA` | `false` | Use simulated vehicle data (no API key needed) |
 | `CTA_API_KEY` | — | Required when pipeline enabled and not using fake CTA |
@@ -254,10 +254,13 @@ An admin UI makes the pipeline observable in production and easy to test locally
 4. **Stops** — loaded stops per route (verify importer)
 
 ### Admin API endpoints (backend, PR 2)
-*   `POST /admin/login` — authenticate, set session cookie
-*   `POST /admin/logout`
-*   `GET /admin/pipeline/status` — pipeline health + stats
-*   `GET /admin/arrivals` — recent arrivals (paginated)
+*   `POST /api/v1/admin/login` — authenticate, set session cookie
+*   `POST /api/v1/admin/logout`
+*   `GET /api/v1/admin/session` — check auth state (public)
+*   `GET /api/v1/admin/pipeline/status` — pipeline health + stats
+*   `GET /api/v1/admin/arrivals` — recent arrivals (paginated)
+
+Admin UI routes (`/admin/login`, `/admin`, `/admin/arrivals`) are React pages. API calls go under `/api/v1/admin/*` so the Vite dev proxy does not intercept page navigation.
 
 PR 1 wires the pipeline and persists data; PR 2 adds the admin API + React admin pages.
 
@@ -422,16 +425,16 @@ Organized as small, reviewable PRs. Status reflects current progress.
 **Success criteria:** Stable ingestion for 2 routes over a few hours, no duplicate spam.
 
 * * *
-## PR 2 — Admin UI + Pipeline Observability
+## PR 2 — Admin UI + Pipeline Observability ✅
 
 **Goal:** Login-protected admin UI to monitor pipeline health and inspect arrivals locally and in production.
 
-| Step | Task |
-|------|------|
-| 1 | `PipelineStatus` tracker (last poll, ping count, errors) |
-| 2 | Admin auth middleware (`ADMIN_USERNAME`, `ADMIN_PASSWORD`, session cookie) |
-| 3 | Admin API: login, logout, pipeline status, recent arrivals |
-| 4 | React admin pages: login, dashboard, arrivals table |
+| Step | Task | Status |
+|------|------|--------|
+| 1 | `PipelineStatus` tracker | ✅ |
+| 2 | Admin auth middleware (`ADMIN_USERNAME`, `ADMIN_PASSWORD`, session cookie) | ✅ |
+| 3 | Admin API: login, logout, pipeline status, recent arrivals | ✅ |
+| 4 | React admin pages: login, dashboard, arrivals table | ✅ |
 
 * * *
 ## PR 3 — Headway Computation + Rider API

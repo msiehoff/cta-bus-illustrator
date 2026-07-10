@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import Sidebar, { SidebarContent } from './components/Sidebar'
 import MobileHeader from './components/MobileHeader'
 import RouteMap from './components/RouteMap'
@@ -7,6 +7,11 @@ import SystemOverview from './pages/SystemOverview'
 import RoutesPage from './pages/RoutesPage'
 import RoutePage from './pages/RoutePage'
 import CorridorRoutePage from './pages/CorridorRoutePage'
+import AdminLogin from './pages/admin/AdminLogin'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminArrivals from './pages/admin/AdminArrivals'
+import AdminLayout from './components/admin/AdminLayout'
+import ProtectedRoute from './components/admin/ProtectedRoute'
 import { trackPageView } from './lib/analytics'
 
 const Analytics = () => {
@@ -74,7 +79,17 @@ const AppShell = () => {
 const App = () => (
   <BrowserRouter>
     <Analytics />
-    <AppShell />
+    <Routes>
+      <Route path="/login/admin" element={<Navigate to="/admin/login" replace />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin" element={<ProtectedRoute />}>
+        <Route element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="arrivals" element={<AdminArrivals />} />
+        </Route>
+      </Route>
+      <Route path="/*" element={<AppShell />} />
+    </Routes>
   </BrowserRouter>
 )
 

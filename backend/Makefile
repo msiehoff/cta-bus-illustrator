@@ -2,8 +2,11 @@
 
 ifneq (,$(wildcard .env))
   include .env
-  export
 endif
+
+# Parent targets (make serve / make serve_all) override via command line.
+PIPELINE_ENABLED ?= false
+export
 
 serve:
 	air

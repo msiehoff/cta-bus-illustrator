@@ -23,6 +23,7 @@ func main() {
 	var (
 		routeRepo     app.RouteRepository
 		ridershipRepo app.RidershipRepository
+		arrivalRepo   app.ArrivalRepository
 		db            *gorm.DB
 	)
 
@@ -44,6 +45,7 @@ func main() {
 
 			routeRepo = pgstore.NewRouteRepo(db)
 			ridershipRepo = pgstore.NewRidershipRepo(db)
+			arrivalRepo = pgstore.NewArrivalRepo(db)
 			log.Println("using postgres repository")
 		}
 	} else {
@@ -52,47 +54,75 @@ func main() {
 		ridershipRepo = &fake.RidershipRepo{}
 	}
 
+	if arrivalRepo == nil {
+		arrivalRepo = &fake.ArrivalRepo{}
+	}
+
 	ctaAPIKey := os.Getenv("CTA_API_KEY")
 	ctaDataSrc := cta.NewRouteSegmentDataSource(cta.NewClient(ctaAPIKey))
 
+	var pipelineRunner *app.PipelineRunner
 	if app.PipelineEnabledFromEnv() {
-		startPipeline(ctx, db, ctaAPIKey)
+		var routeProvider app.PipelineRouteProvider
+		if db != nil {
+			routeProvider = app.NewRidershipRouteProvider(ridershipRepo)
+		} else {
+			routeProvider = fake.NewPipelineRouteProvider()
+		}
+		pipelineRunner = startPipeline(ctx, ctaAPIKey, routeProvider, arrivalRepo, db)
+	}
+
+	adminAuth, adminEnabled := api.AdminAuthFromEnv()
+	if adminEnabled {
+		log.Println("admin UI enabled")
+	} else {
+		log.Println("admin UI disabled — set ADMIN_USERNAME and ADMIN_PASSWORD to enable")
 	}
 
 	routeService := app.NewRouteService(routeRepo, ridershipRepo)
-	a := api.New(routeService, ctaDataSrc)
+	a := api.New(api.Options{
+		RouteService:   routeService,
+		CtaDataSrc:     ctaDataSrc,
+		PipelineRunner: pipelineRunner,
+		ArrivalRepo:    arrivalRepo,
+		AdminAuth:      adminAuth,
+	})
 	if err := a.Run(":8080"); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
 }
 
-func startPipeline(ctx context.Context, db *gorm.DB, ctaAPIKey string) {
-	var (
-		vehicleClient app.CTAVehicleClient
-		arrivalRepo   app.ArrivalRepository
-		stopRepo      app.StopRepository
-	)
-
+func startPipeline(
+	ctx context.Context,
+	ctaAPIKey string,
+	routeProvider app.PipelineRouteProvider,
+	arrivalRepo app.ArrivalRepository,
+	db *gorm.DB,
+) *app.PipelineRunner {
+	var vehicleClient app.CTAVehicleClient
 	if app.PipelineUseFakeCTAFromEnv() {
 		log.Println("pipeline: using fake CTA client")
 		vehicleClient = fake.NewCTAClient()
 	} else {
 		if ctaAPIKey == "" {
 			log.Println("pipeline: CTA_API_KEY not set — pipeline disabled")
-			return
+			return nil
 		}
 		vehicleClient = cta.NewVehicleClient(cta.NewClient(ctaAPIKey))
 	}
 
+	var stopRepo app.StopRepository
 	if db != nil {
-		arrivalRepo = pgstore.NewArrivalRepo(db)
 		stopRepo = pgstore.NewStopRepo(db)
-	} else {
-		log.Println("pipeline: no database — using in-memory arrival repo")
-		arrivalRepo = &fake.ArrivalRepo{}
 	}
 
-	cfg := app.PipelineConfigFromEnv()
+	cfg, err := app.ResolvePipelineConfig(ctx, routeProvider)
+	if err != nil {
+		log.Printf("pipeline: config error: %v", err)
+		return nil
+	}
+	log.Printf("pipeline: monitoring %d routes", len(cfg.RouteIDs))
+
 	runner := app.NewPipelineRunner(vehicleClient, arrivalRepo, stopRepo, cfg)
 
 	go func() {
@@ -100,4 +130,6 @@ func startPipeline(ctx context.Context, db *gorm.DB, ctaAPIKey string) {
 			log.Printf("pipeline error: %v", err)
 		}
 	}()
+
+	return runner
 }

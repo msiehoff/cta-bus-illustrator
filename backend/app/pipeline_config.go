@@ -1,29 +1,48 @@
 package app
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func PipelineConfigFromEnv() PipelineConfig {
-	routes := []string{"8", "66"}
-	if v := strings.TrimSpace(os.Getenv("PIPELINE_ROUTES")); v != "" {
-		routes = splitCommaList(v)
+func ResolvePipelineConfig(ctx context.Context, provider PipelineRouteProvider) (PipelineConfig, error) {
+	cfg := PipelineConfig{
+		PollInterval: defaultPollInterval(),
 	}
 
+	if v := strings.TrimSpace(os.Getenv("PIPELINE_ROUTES")); v != "" {
+		cfg.RouteIDs = splitCommaList(v)
+		return cfg, nil
+	}
+
+	if provider == nil {
+		return cfg, fmt.Errorf("PIPELINE_ROUTES unset and no route provider configured")
+	}
+
+	routeIDs, err := provider.GetRouteIDs(ctx)
+	if err != nil {
+		return cfg, fmt.Errorf("resolve pipeline routes: %w", err)
+	}
+	if len(routeIDs) == 0 {
+		return cfg, fmt.Errorf("no routes found for pipeline")
+	}
+
+	cfg.RouteIDs = routeIDs
+	return cfg, nil
+}
+
+func defaultPollInterval() time.Duration {
 	interval := 30 * time.Second
 	if v := strings.TrimSpace(os.Getenv("PIPELINE_POLL_INTERVAL")); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			interval = d
 		}
 	}
-
-	return PipelineConfig{
-		RouteIDs:     routes,
-		PollInterval: interval,
-	}
+	return interval
 }
 
 func PipelineEnabledFromEnv() bool {

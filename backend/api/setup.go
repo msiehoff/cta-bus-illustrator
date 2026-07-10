@@ -6,18 +6,33 @@ import (
 )
 
 type API struct {
-	router       *gin.Engine
-	routeService *app.RouteService
-	ctaDataSrc   app.RouteSegmentDataSource
+	router         *gin.Engine
+	routeService   *app.RouteService
+	ctaDataSrc     app.RouteSegmentDataSource
+	pipelineRunner *app.PipelineRunner
+	arrivalRepo    app.ArrivalRepository
+	adminAuth      *AdminAuth
 }
 
-func New(routeService *app.RouteService, ctaDataSrc app.RouteSegmentDataSource) *API {
+type Options struct {
+	RouteService   *app.RouteService
+	CtaDataSrc     app.RouteSegmentDataSource
+	PipelineRunner *app.PipelineRunner
+	ArrivalRepo    app.ArrivalRepository
+	AdminAuth      *AdminAuth
+}
+
+func New(opts Options) *API {
 	a := &API{
-		router:       gin.Default(),
-		routeService: routeService,
-		ctaDataSrc:   ctaDataSrc,
+		router:         gin.Default(),
+		routeService:   opts.RouteService,
+		ctaDataSrc:     opts.CtaDataSrc,
+		pipelineRunner: opts.PipelineRunner,
+		arrivalRepo:    opts.ArrivalRepo,
+		adminAuth:      opts.AdminAuth,
 	}
 	a.registerRoutes()
+	a.registerAdminRoutes()
 	return a
 }
 
