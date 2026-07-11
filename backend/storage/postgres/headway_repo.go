@@ -49,7 +49,14 @@ func (r *HeadwayRepo) List(_ context.Context, filter app.HeadwayListFilter) ([]b
 	if limit > 200 {
 		limit = 200
 	}
+	return r.list(filter, limit, filter.Offset)
+}
 
+func (r *HeadwayRepo) ListAll(_ context.Context, filter app.HeadwayListFilter) ([]business.Headway, error) {
+	return r.list(filter, 50_000, 0)
+}
+
+func (r *HeadwayRepo) list(filter app.HeadwayListFilter, limit, offset int) ([]business.Headway, error) {
 	order := "headways.timestamp DESC"
 	if filter.SortAsc {
 		order = "headways.timestamp ASC"
@@ -76,7 +83,7 @@ func (r *HeadwayRepo) List(_ context.Context, filter app.HeadwayListFilter) ([]b
 	query = applyHeadwayListFilter(query, filter)
 
 	var rows []row
-	if err := query.Order(order).Limit(limit).Offset(filter.Offset).Scan(&rows).Error; err != nil {
+	if err := query.Order(order).Limit(limit).Offset(offset).Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 
@@ -162,6 +169,7 @@ func (r *HeadwayJobRunRepo) Update(_ context.Context, run business.HeadwayJobRun
 		"finished_at":        model.FinishedAt,
 		"arrivals_processed": model.ArrivalsProcessed,
 		"headways_written":   model.HeadwaysWritten,
+		"summaries_written":  model.SummariesWritten,
 		"error_message":      model.ErrorMessage,
 		"updated_at":         time.Now().UTC(),
 	}).Error
@@ -200,6 +208,7 @@ func toJobRunModel(run business.HeadwayJobRun) headwayJobRunModel {
 		FinishedAt:        run.FinishedAt,
 		ArrivalsProcessed: run.ArrivalsProcessed,
 		HeadwaysWritten:   run.HeadwaysWritten,
+		SummariesWritten:  run.SummariesWritten,
 		ErrorMessage:      run.ErrorMessage,
 	}
 }
@@ -214,6 +223,135 @@ func fromJobRunModel(m headwayJobRunModel) business.HeadwayJobRun {
 		FinishedAt:        m.FinishedAt,
 		ArrivalsProcessed: m.ArrivalsProcessed,
 		HeadwaysWritten:   m.HeadwaysWritten,
+		SummariesWritten:  m.SummariesWritten,
 		ErrorMessage:      m.ErrorMessage,
 	}
+}
+
+type HeadwaySummaryRepo struct {
+	db *gorm.DB
+}
+
+func NewHeadwaySummaryRepo(db *gorm.DB) *HeadwaySummaryRepo {
+	return &HeadwaySummaryRepo{db: db}
+}
+
+func (r *HeadwaySummaryRepo) DeleteForServiceDate(_ context.Context, serviceDate time.Time) (int64, error) {
+	day := time.Date(serviceDate.Year(), serviceDate.Month(), serviceDate.Day(), 0, 0, 0, 0, time.UTC)
+	res := r.db.Where("service_date = ?", day).Delete(&headwaySummaryModel{})
+	return res.RowsAffected, res.Error
+}
+
+func (r *HeadwaySummaryRepo) InsertBatch(_ context.Context, summaries []business.HeadwaySummary) error {
+	if len(summaries) == 0 {
+		return nil
+	}
+	models := make([]headwaySummaryModel, len(summaries))
+	for i, s := range summaries {
+		models[i] = headwaySummaryModel{
+			ServiceDate:      s.ServiceDate,
+			WindowStart:      s.WindowStart,
+			WindowEnd:        s.WindowEnd,
+			Grain:            s.Grain,
+			Method:           s.Method,
+			StopID:           s.StopID,
+			RouteID:          s.RouteID,
+			Direction:        s.Direction,
+			ObservationCount: s.Count,
+			MeanMinutes:      s.MeanMinutes,
+			MedianMinutes:    s.MedianMinutes,
+			StdDevMinutes:    s.StdDevMinutes,
+			CV:               s.CV,
+			AvgWaitMinutes:   s.AvgWaitMinutes,
+		}
+	}
+	return r.db.CreateInBatches(&models, 500).Error
+}
+
+func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFilter) ([]business.HeadwaySummary, error) {
+	day := time.Date(filter.ServiceDate.Year(), filter.ServiceDate.Month(), filter.ServiceDate.Day(), 0, 0, 0, 0, time.UTC)
+
+	type row struct {
+		ServiceDate      time.Time `gorm:"column:service_date"`
+		WindowStart      time.Time `gorm:"column:window_start"`
+		WindowEnd        time.Time `gorm:"column:window_end"`
+		Grain            string    `gorm:"column:grain"`
+		Method           string    `gorm:"column:method"`
+		StopID           string    `gorm:"column:stop_id"`
+		RouteID          string    `gorm:"column:route_id"`
+		Direction        string    `gorm:"column:direction"`
+		ObservationCount int       `gorm:"column:observation_count"`
+		MeanMinutes      float64   `gorm:"column:mean_minutes"`
+		MedianMinutes    float64   `gorm:"column:median_minutes"`
+		StdDevMinutes    float64   `gorm:"column:stddev_minutes"`
+		CV               float64   `gorm:"column:cv"`
+		AvgWaitMinutes   float64   `gorm:"column:avg_wait_minutes"`
+		StopName         *string   `gorm:"column:stop_name"`
+		RouteName        *string   `gorm:"column:route_name"`
+	}
+
+	query := r.db.Table("headway_summaries").
+		Select(`headway_summaries.*, stops.name AS stop_name, routes.name AS route_name`).
+		Joins(`LEFT JOIN stops ON stops.stop_id = headway_summaries.stop_id
+			AND stops.route_id = headway_summaries.route_id
+			AND stops.direction = headway_summaries.direction`).
+		Joins(`LEFT JOIN routes ON routes.external_id = headway_summaries.route_id AND routes.deleted_at IS NULL`).
+		Where("headway_summaries.service_date = ?", day)
+
+	if filter.Grain != "" {
+		query = query.Where("headway_summaries.grain = ?", filter.Grain)
+	}
+	if filter.Method != "" {
+		query = query.Where("headway_summaries.method = ?", filter.Method)
+	}
+	if filter.RouteID != "" {
+		query = query.Where("headway_summaries.route_id = ?", filter.RouteID)
+	}
+	if filter.Direction != "" {
+		query = query.Where("headway_summaries.direction = ?", filter.Direction)
+	}
+	if filter.StopID != "" {
+		query = query.Where("headway_summaries.stop_id = ?", filter.StopID)
+	}
+	if filter.Stop != "" {
+		like := "%" + filter.Stop + "%"
+		query = query.Where(
+			"headway_summaries.stop_id = ? OR stops.name ILIKE ?",
+			filter.Stop, like,
+		)
+	}
+
+	var rows []row
+	if err := query.Order("headway_summaries.mean_minutes DESC").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	out := make([]business.HeadwaySummary, len(rows))
+	for i, row := range rows {
+		out[i] = business.HeadwaySummary{
+			ServiceDate: row.ServiceDate,
+			WindowStart: row.WindowStart,
+			WindowEnd:   row.WindowEnd,
+			Grain:       row.Grain,
+			Method:      row.Method,
+			StopID:      row.StopID,
+			RouteID:     row.RouteID,
+			Direction:   row.Direction,
+			HeadwaySummaryStats: business.HeadwaySummaryStats{
+				Count:          row.ObservationCount,
+				MeanMinutes:    row.MeanMinutes,
+				MedianMinutes:  row.MedianMinutes,
+				StdDevMinutes:  row.StdDevMinutes,
+				CV:             row.CV,
+				AvgWaitMinutes: row.AvgWaitMinutes,
+			},
+		}
+		if row.StopName != nil {
+			out[i].StopName = *row.StopName
+		}
+		if row.RouteName != nil {
+			out[i].RouteName = *row.RouteName
+		}
+	}
+	return out, nil
 }

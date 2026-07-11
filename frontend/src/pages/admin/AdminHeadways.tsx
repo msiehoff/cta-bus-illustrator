@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import FilterValue from '../../components/admin/FilterValue'
+import StatCard from '../../components/StatCard'
 import { useHeadways } from '../../hooks/useHeadways'
+import { useHeadwaySummary } from '../../hooks/useHeadwaySummary'
 import { toChicagoServiceDate } from '../../lib/chicagoDate'
 
 const formatTime = (value: string) => new Date(value).toLocaleString()
@@ -9,6 +11,15 @@ const formatTime = (value: string) => new Date(value).toLocaleString()
 const formatMinutes = (mins: number) => {
   if (Number.isInteger(mins)) return String(mins)
   return mins.toFixed(1)
+}
+
+const formatCV = (cv: number) => (cv === 0 ? '—' : cv.toFixed(2))
+
+const cvTrend = (cv: number) => {
+  if (cv <= 0) return undefined
+  if (cv < 0.3) return { text: 'Fairly regular', up: true as const }
+  if (cv < 0.6) return { text: 'Moderate irregularity', up: undefined }
+  return { text: 'Unreliable (bunches/gaps)', up: false as const }
 }
 
 const filterInputClass =
@@ -24,16 +35,15 @@ const AdminHeadways = () => {
   const [offset, setOffset] = useState(0)
   const limit = 50
 
+  const filters = { route, direction, stop, vehicle, date }
+
   const { data, loading, error } = useHeadways({
-    route,
-    direction,
-    stop,
-    vehicle,
-    date,
+    ...filters,
     sort: sortAsc ? 'asc' : 'desc',
     limit,
     offset,
   })
+  const { data: summary, error: summaryError } = useHeadwaySummary(filters)
 
   const page = useMemo(() => Math.floor(offset / limit) + 1, [offset, limit])
   const totalPages = data ? Math.max(1, Math.ceil(data.total / limit)) : 1
@@ -50,12 +60,18 @@ const AdminHeadways = () => {
     resetOffset()
   }
 
+  const pooled = summary?.pooled
+  const cvMeta = pooled ? cvTrend(pooled.cv) : undefined
+  const showByStop = (summary?.byStop.length ?? 0) > 1
+  const showEqualWeight = showByStop && summary != null
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold">Observed Headways</h2>
         <p className="text-sm text-gray-400 mt-1">
-          Gaps between consecutive arrivals at a stop. Click a cell to filter. Re-run a job to refresh after code changes.
+          Gaps between consecutive arrivals at a stop. Summary stats update with filters
+          {summary?.source === 'stored' ? ' (from daily job)' : summary?.source === 'computed' ? ' (computed live)' : ''}.
         </p>
       </div>
 
@@ -143,7 +159,83 @@ const AdminHeadways = () => {
         </div>
       </div>
 
-      {error && <p className="text-red-400">{error}</p>}
+      {(error || summaryError) && (
+        <p className="text-red-400">{error || summaryError}</p>
+      )}
+
+      {pooled && pooled.count > 0 && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <StatCard label="Observations" value={String(pooled.count)} />
+            <StatCard
+              label="Mean headway"
+              value={`${formatMinutes(pooled.meanMinutes)} min`}
+              trend={
+                showEqualWeight && summary
+                  ? `Equal-stop avg ${formatMinutes(summary.equalStopWeight.meanMinutes)} min`
+                  : undefined
+              }
+            />
+            <StatCard
+              label="Median headway"
+              value={`${formatMinutes(pooled.medianMinutes)} min`}
+            />
+            <StatCard
+              label="CV"
+              value={formatCV(pooled.cv)}
+              trend={cvMeta?.text}
+              trendUp={cvMeta?.up}
+            />
+            <StatCard
+              label="Avg wait ≈"
+              value={`${formatMinutes(pooled.avgWaitMinutes)} min`}
+              trend="mean / 2"
+            />
+          </div>
+
+          {showByStop && summary && (
+            <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-800">
+                <h3 className="text-sm font-medium text-gray-300">By stop</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Per-stop means; equal-stop route average weights each stop the same.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-950/80 text-gray-400">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium">Stop</th>
+                      <th className="px-4 py-2 text-left font-medium">n</th>
+                      <th className="px-4 py-2 text-left font-medium">Mean</th>
+                      <th className="px-4 py-2 text-left font-medium">Median</th>
+                      <th className="px-4 py-2 text-left font-medium">CV</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.byStop.map(s => (
+                      <tr key={`${s.stopId}-${s.routeId}-${s.direction}`} className="border-t border-gray-800">
+                        <td className="px-4 py-2">
+                          <FilterValue
+                            value={s.stopName || s.stopId}
+                            active={stop === (s.stopName || s.stopId) || stop === s.stopId}
+                            onSelect={setFilter(setStop)}
+                            className="text-gray-300"
+                          />
+                        </td>
+                        <td className="px-4 py-2 text-gray-400 tabular-nums">{s.count}</td>
+                        <td className="px-4 py-2 text-white tabular-nums">{formatMinutes(s.meanMinutes)}</td>
+                        <td className="px-4 py-2 text-gray-300 tabular-nums">{formatMinutes(s.medianMinutes)}</td>
+                        <td className="px-4 py-2 text-gray-300 tabular-nums">{formatCV(s.cv)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">

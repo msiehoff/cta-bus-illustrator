@@ -51,6 +51,7 @@ type HeadwayJobRunResponse struct {
 	FinishedAt        *string `json:"finishedAt,omitempty"`
 	ArrivalsProcessed int     `json:"arrivalsProcessed"`
 	HeadwaysWritten   int     `json:"headwaysWritten"`
+	SummariesWritten  int     `json:"summariesWritten"`
 	ErrorMessage      string  `json:"errorMessage,omitempty"`
 }
 
@@ -79,6 +80,53 @@ type ListHeadwaysResponse struct {
 	Offset   int               `json:"offset"`
 }
 
+type HeadwaySummaryStatsResponse struct {
+	Count          int     `json:"count"`
+	MeanMinutes    float64 `json:"meanMinutes"`
+	MedianMinutes  float64 `json:"medianMinutes"`
+	StdDevMinutes  float64 `json:"stdDevMinutes"`
+	CV             float64 `json:"cv"`
+	AvgWaitMinutes float64 `json:"avgWaitMinutes"`
+}
+
+type HeadwayStopSummaryResponse struct {
+	StopID    string `json:"stopId"`
+	StopName  string `json:"stopName,omitempty"`
+	RouteID   string `json:"routeId"`
+	RouteName string `json:"routeName,omitempty"`
+	Direction string `json:"direction"`
+	HeadwaySummaryStatsResponse
+}
+
+type HeadwaySummaryResponse struct {
+	// Pooled: stats over all matching observed gaps (weighted by volume).
+	Pooled HeadwaySummaryStatsResponse `json:"pooled"`
+	// EqualStopWeight: mean of per-stop means (and related) when multiple stops.
+	EqualStopWeight HeadwaySummaryStatsResponse  `json:"equalStopWeight"`
+	ByStop          []HeadwayStopSummaryResponse `json:"byStop"`
+	// Source is "stored" when read from headway_summaries, else "computed".
+	Source string `json:"source"`
+}
+
+func toSummaryStatsResponse(s business.HeadwaySummaryStats) HeadwaySummaryStatsResponse {
+	return HeadwaySummaryStatsResponse{
+		Count:          s.Count,
+		MeanMinutes:    round2(s.MeanMinutes),
+		MedianMinutes:  round2(s.MedianMinutes),
+		StdDevMinutes:  round2(s.StdDevMinutes),
+		CV:             round3(s.CV),
+		AvgWaitMinutes: round2(s.AvgWaitMinutes),
+	}
+}
+
+func round2(v float64) float64 {
+	return float64(int(v*100+0.5)) / 100
+}
+
+func round3(v float64) float64 {
+	return float64(int(v*1000+0.5)) / 1000
+}
+
 func HeadwayJobRunResponseFrom(run business.HeadwayJobRun) HeadwayJobRunResponse {
 	resp := HeadwayJobRunResponse{
 		ID:                run.ID,
@@ -88,6 +136,7 @@ func HeadwayJobRunResponseFrom(run business.HeadwayJobRun) HeadwayJobRunResponse
 		StartedAt:         run.StartedAt.UTC().Format(time.RFC3339),
 		ArrivalsProcessed: run.ArrivalsProcessed,
 		HeadwaysWritten:   run.HeadwaysWritten,
+		SummariesWritten:  run.SummariesWritten,
 		ErrorMessage:      run.ErrorMessage,
 	}
 	if run.FinishedAt != nil {

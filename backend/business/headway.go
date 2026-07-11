@@ -45,5 +45,6 @@ type HeadwayJobRun struct {
 	FinishedAt        *time.Time
 	ArrivalsProcessed int
 	HeadwaysWritten   int
+	SummariesWritten  int
 	ErrorMessage      string
 }

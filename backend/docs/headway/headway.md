@@ -224,7 +224,23 @@ headway_job_runs:
   finished_at
   arrivals_processed
   headways_written
+  summaries_written
   error_message          # nullable
+```
+
+* * *
+## headway_summaries
+Persisted aggregates written by the same daily job as observed headways.
+
+```yaml
+headway_summaries:
+  service_date
+  window_start / window_end   # America/Chicago day bounds
+  grain                      # stop | route_direction | service_day
+  method                     # pooled | equal_stop
+  stop_id / route_id / direction  # empty string when unused for grain
+  observation_count
+  mean_minutes / median_minutes / stddev_minutes / cv / avg_wait_minutes
 ```
 
 * * *
@@ -280,11 +296,24 @@ scheduled headways for bunching/gap % metrics.
 | Layer | Storage | Role |
 |-------|---------|------|
 | **Observed headways** | `headways` table | Facts — idempotent daily rollup output |
-| **Summaries** | API query (v1) or `headway_summaries` later | Mean/median/CV by grain × time window |
+| **Summaries** | `headway_summaries` table | Mean/median/CV by grain × method for that service date |
+
+The daily job writes **both** layers for `service_date = D` (delete + insert).
+Admin/rider APIs prefer stored summaries when a service date is set; they fall back
+to compute-on-read only for ad-hoc filters (e.g. vehicle) or when no job has run yet.
 
 Do **not** mix `"observed"` and `"weekday_am_avg"` as interchangeable row types
 in one undifferentiated table. Facts are one grain; summaries are another
-(`grain` + `window` on a summary table or computed on read).
+(`grain` + `method` on `headway_summaries`).
+
+### headway_summaries grains
+
+| Grain | Method | Meaning |
+|-------|--------|---------|
+| `stop` | `pooled` | Stats for one stop+route+direction |
+| `route_direction` | `pooled` | All gaps on that route+direction |
+| `route_direction` | `equal_stop` | Mean of per-stop means |
+| `service_day` | `pooled` / `equal_stop` | Whole service date |
 
 * * *
 # Headway Daily Job
@@ -450,11 +479,11 @@ admin visibility into job runs; rider-facing actual headway stats.
 | Step | Task |
 |------|------|
 | 1 | Extend `headways` (vehicle IDs, unique constraint) + `headway_job_runs` migration |
-| 2 | `HeadwayRollup` service: arrivals for `service_date` → observed gaps (idempotent upsert) |
+| 2 | `HeadwayRollup` service: arrivals for `service_date` → observed gaps + summaries (idempotent) |
 | 3 | `POST /api/v1/admin/headways/run` — session **or** `HEADWAY_JOB_TOKEN` |
 | 4 | `GET /api/v1/admin/headways/runs` — list job metadata for admin UI |
 | 5 | Admin page: run history + “Run for date” trigger |
-| 6 | Time-window helpers + summary stats (mean, median, CV, count) in API |
+| 6 | `headway_summaries` table + stats written by daily job; admin summary API reads stored rows |
 | 7 | `GET /api/v1/routes/:id/headways?direction=&stop=&window=&from=&to=` |
 | 8 | GitHub Actions daily workflow (simplest cron) |
 | 9 | Frontend: replace “Coming soon” with headway summary + simple chart |

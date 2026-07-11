@@ -2,9 +2,11 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/msiehoff/cta-bus-illustrator/backend/app"
+	"github.com/msiehoff/cta-bus-illustrator/backend/business"
 )
 
 type adminLoginRequest struct {
@@ -24,6 +26,7 @@ func (a *API) registerAdminRoutes() {
 		{
 			protected.GET("/pipeline/status", a.handleAdminPipelineStatus)
 			protected.GET("/arrivals", a.handleAdminListArrivals)
+			protected.GET("/headways/summary", a.handleAdminHeadwaySummary)
 			protected.GET("/headways", a.handleAdminListHeadways)
 		}
 	}
@@ -211,4 +214,98 @@ func (a *API) handleAdminListHeadways(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+func (a *API) handleAdminHeadwaySummary(c *gin.Context) {
+	date := c.Query("date")
+	vehicle := c.Query("vehicle")
+
+	// Prefer persisted summaries when we have a service date and no vehicle filter
+	// (vehicle is only on raw observed gaps).
+	if date != "" && vehicle == "" && a.headwayRollup != nil {
+		serviceDate, err := app.ParseServiceDate(date)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		serviceDateOnly := time.Date(serviceDate.Year(), serviceDate.Month(), serviceDate.Day(), 0, 0, 0, 0, time.UTC)
+		pooled, equal, byStop, ok, err := a.headwayRollup.LoadStoredSummary(c.Request.Context(), app.HeadwaySummaryFilter{
+			ServiceDate: serviceDateOnly,
+			RouteID:     c.Query("route"),
+			Direction:   c.Query("direction"),
+			Stop:        c.Query("stop"),
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if ok {
+			c.JSON(http.StatusOK, toHeadwaySummaryResponse(pooled, equal, byStop, "stored"))
+			return
+		}
+	}
+
+	// Fallback: compute on read from observed headways (no date yet / job not run / vehicle filter).
+	if a.headwayRepo == nil {
+		c.JSON(http.StatusOK, HeadwaySummaryResponse{
+			ByStop: []HeadwayStopSummaryResponse{},
+			Source: "computed",
+		})
+		return
+	}
+
+	filter := app.HeadwayListFilter{
+		RouteID:   c.Query("route"),
+		Direction: c.Query("direction"),
+		Stop:      c.Query("stop"),
+		VehicleID: vehicle,
+	}
+	if date != "" {
+		serviceDate, err := app.ParseServiceDate(date)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		start, end := app.ServiceDateBounds(serviceDate)
+		filter.From = &start
+		filter.To = &end
+	}
+
+	headways, err := a.headwayRepo.ListAll(c.Request.Context(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	byStop := app.SummarizeHeadwaysByStop(headways)
+	c.JSON(http.StatusOK, toHeadwaySummaryResponse(
+		app.SummarizeHeadways(headways),
+		app.MeanOfStopMeans(byStop),
+		byStop,
+		"computed",
+	))
+}
+
+func toHeadwaySummaryResponse(
+	pooled, equal business.HeadwaySummaryStats,
+	byStop []business.HeadwayStopSummary,
+	source string,
+) HeadwaySummaryResponse {
+	resp := HeadwaySummaryResponse{
+		Pooled:          toSummaryStatsResponse(pooled),
+		EqualStopWeight: toSummaryStatsResponse(equal),
+		ByStop:          make([]HeadwayStopSummaryResponse, len(byStop)),
+		Source:          source,
+	}
+	for i, s := range byStop {
+		resp.ByStop[i] = HeadwayStopSummaryResponse{
+			StopID:                      s.StopID,
+			StopName:                    s.StopName,
+			RouteID:                     s.RouteID,
+			RouteName:                   s.RouteName,
+			Direction:                   s.Direction,
+			HeadwaySummaryStatsResponse: toSummaryStatsResponse(s.HeadwaySummaryStats),
+		}
+	}
+	return resp
 }

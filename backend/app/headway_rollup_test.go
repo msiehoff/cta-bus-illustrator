@@ -53,6 +53,39 @@ func TestComputeObservedHeadwaysSkipsSameVehicle(t *testing.T) {
 	}
 }
 
+func TestBuildPersistedSummaries(t *testing.T) {
+	base := time.Date(2026, 7, 10, 8, 0, 0, 0, time.UTC)
+	headways := []business.Headway{
+		{StopID: "a", RouteID: "8", Direction: "NB", Timestamp: base, HeadwayMinutes: 10},
+		{StopID: "a", RouteID: "8", Direction: "NB", Timestamp: base.Add(time.Hour), HeadwayMinutes: 14},
+		{StopID: "b", RouteID: "8", Direction: "NB", Timestamp: base, HeadwayMinutes: 20},
+	}
+	serviceDate := time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC)
+	start, end := app.ServiceDateBounds(serviceDate)
+
+	got := app.BuildPersistedSummaries(headways, serviceDate, start, end)
+	var stops, routeDir, serviceDay int
+	for _, s := range got {
+		switch s.Grain {
+		case business.HeadwayGrainStop:
+			stops++
+		case business.HeadwayGrainRouteDirection:
+			routeDir++
+		case business.HeadwayGrainServiceDay:
+			serviceDay++
+		}
+	}
+	if stops != 2 {
+		t.Fatalf("stop rows = %d", stops)
+	}
+	if routeDir != 2 { // pooled + equal_stop
+		t.Fatalf("route_direction rows = %d", routeDir)
+	}
+	if serviceDay != 2 {
+		t.Fatalf("service_day rows = %d", serviceDay)
+	}
+}
+
 func TestServiceDateBounds(t *testing.T) {
 	d, err := app.ParseServiceDate("2026-07-10")
 	if err != nil {

@@ -26,7 +26,7 @@ func TestHeadwayRunWithJobToken(t *testing.T) {
 		StopID: "s1", RouteID: "8", Direction: "Northbound", VehicleID: "b", Timestamp: base.Add(12 * time.Minute),
 	})
 
-	rollup := app.NewHeadwayRollup(arrivalRepo, &fake.HeadwayRepo{}, &fake.HeadwayJobRunRepo{})
+	rollup := app.NewHeadwayRollup(arrivalRepo, &fake.HeadwayRepo{}, &fake.HeadwaySummaryRepo{}, &fake.HeadwayJobRunRepo{})
 	api := New(Options{
 		RouteService:  app.NewRouteService(&fake.RouteRepo{}, &fake.RidershipRepo{}),
 		ArrivalRepo:   arrivalRepo,
@@ -71,7 +71,7 @@ func TestHeadwayRunWithAdminSession(t *testing.T) {
 		password: "secret",
 		secret:   []byte("test-secret"),
 	}
-	rollup := app.NewHeadwayRollup(&fake.ArrivalRepo{}, &fake.HeadwayRepo{}, &fake.HeadwayJobRunRepo{})
+	rollup := app.NewHeadwayRollup(&fake.ArrivalRepo{}, &fake.HeadwayRepo{}, &fake.HeadwaySummaryRepo{}, &fake.HeadwayJobRunRepo{})
 	api := New(Options{
 		RouteService:  app.NewRouteService(&fake.RouteRepo{}, &fake.RidershipRepo{}),
 		HeadwayRollup: rollup,
@@ -154,10 +154,59 @@ func TestAdminListHeadways(t *testing.T) {
 	}
 }
 
+func TestAdminHeadwaySummary(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	auth := &AdminAuth{
+		username: "admin",
+		password: "secret",
+		secret:   []byte("test-secret"),
+	}
+	headwayRepo := &fake.HeadwayRepo{}
+	_ = headwayRepo.InsertBatch(t.Context(), []business.Headway{
+		{StopID: "a", RouteID: "8", Direction: "NB", HeadwayMinutes: 10,
+			Timestamp: time.Date(2026, 7, 10, 8, 0, 0, 0, time.UTC)},
+		{StopID: "a", RouteID: "8", Direction: "NB", HeadwayMinutes: 14,
+			Timestamp: time.Date(2026, 7, 10, 9, 0, 0, 0, time.UTC)},
+		{StopID: "b", RouteID: "8", Direction: "NB", HeadwayMinutes: 20,
+			Timestamp: time.Date(2026, 7, 10, 8, 30, 0, 0, time.UTC)},
+	})
+
+	api := New(Options{
+		RouteService: app.NewRouteService(&fake.RouteRepo{}, &fake.RidershipRepo{}),
+		HeadwayRepo:  headwayRepo,
+		AdminAuth:    auth,
+	})
+
+	token, err := auth.Login("admin", "secret")
+	if err != nil {
+		t.Fatalf("login: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/headways/summary?route=8", nil)
+	req.AddCookie(&http.Cookie{Name: adminSessionCookie, Value: token})
+	rec := httptest.NewRecorder()
+	api.router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var resp HeadwaySummaryResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Pooled.Count != 3 {
+		t.Fatalf("pooled count = %d", resp.Pooled.Count)
+	}
+	if len(resp.ByStop) != 2 {
+		t.Fatalf("byStop = %d", len(resp.ByStop))
+	}
+}
+
 func TestHeadwayRunUnauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	rollup := app.NewHeadwayRollup(&fake.ArrivalRepo{}, &fake.HeadwayRepo{}, &fake.HeadwayJobRunRepo{})
+	rollup := app.NewHeadwayRollup(&fake.ArrivalRepo{}, &fake.HeadwayRepo{}, &fake.HeadwaySummaryRepo{}, &fake.HeadwayJobRunRepo{})
 	api := New(Options{
 		RouteService:  app.NewRouteService(&fake.RouteRepo{}, &fake.RidershipRepo{}),
 		HeadwayRollup: rollup,
@@ -171,4 +220,5 @@ func TestHeadwayRunUnauthorized(t *testing.T) {
 		t.Fatalf("expected 401, got %d", rec.Code)
 	}
 }
+
 

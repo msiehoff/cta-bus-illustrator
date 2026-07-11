@@ -97,6 +97,7 @@ const AdminHeadwayJobs = () => {
             Last trigger: <span className={statusClass(lastRun.status)}>{lastRun.status}</span>
             {' · '}
             {lastRun.arrivalsProcessed} arrivals → {lastRun.headwaysWritten} headways
+            {lastRun.summariesWritten != null ? ` → ${lastRun.summariesWritten} summaries` : ''}
           </p>
         )}
       </div>
@@ -118,6 +119,7 @@ const AdminHeadwayJobs = () => {
                   <th className="px-3 py-2 font-medium">Trigger</th>
                   <th className="px-3 py-2 font-medium">Arrivals</th>
                   <th className="px-3 py-2 font-medium">Headways</th>
+                  <th className="px-3 py-2 font-medium">Summaries</th>
                   <th className="px-3 py-2 font-medium">Started</th>
                   <th className="px-3 py-2 font-medium">Finished</th>
                 </tr>
@@ -137,6 +139,7 @@ const AdminHeadwayJobs = () => {
                     <td className="px-3 py-2 text-gray-400">{run.triggeredBy}</td>
                     <td className="px-3 py-2">{run.arrivalsProcessed}</td>
                     <td className="px-3 py-2">{run.headwaysWritten}</td>
+                    <td className="px-3 py-2">{run.summariesWritten ?? '—'}</td>
                     <td className="px-3 py-2 text-gray-400">{formatTime(run.startedAt)}</td>
                     <td className="px-3 py-2 text-gray-400">{formatTime(run.finishedAt)}</td>
                   </tr>

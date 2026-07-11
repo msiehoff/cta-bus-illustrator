@@ -65,6 +65,20 @@ func (r *HeadwayRepo) List(_ context.Context, filter app.HeadwayListFilter) ([]b
 	return matched[filter.Offset:end], nil
 }
 
+func (r *HeadwayRepo) ListAll(_ context.Context, filter app.HeadwayListFilter) ([]business.Headway, error) {
+	matched := r.filtered(filter)
+	sort.SliceStable(matched, func(i, j int) bool {
+		if filter.SortAsc {
+			return matched[i].Timestamp.Before(matched[j].Timestamp)
+		}
+		return matched[j].Timestamp.Before(matched[i].Timestamp)
+	})
+	if len(matched) > 50_000 {
+		matched = matched[:50_000]
+	}
+	return matched, nil
+}
+
 func (r *HeadwayRepo) Count(_ context.Context, filter app.HeadwayListFilter) (int64, error) {
 	return int64(len(r.filtered(filter))), nil
 }
@@ -160,4 +174,71 @@ func (r *HeadwayJobRunRepo) Get(_ context.Context, id int64) (business.HeadwayJo
 		}
 	}
 	return business.HeadwayJobRun{}, nil
+}
+
+// HeadwaySummaryRepo is an in-memory HeadwaySummaryRepository.
+type HeadwaySummaryRepo struct {
+	mu        sync.Mutex
+	Summaries []business.HeadwaySummary
+}
+
+func (r *HeadwaySummaryRepo) DeleteForServiceDate(_ context.Context, serviceDate time.Time) (int64, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	day := serviceDate.Format("2006-01-02")
+	kept := make([]business.HeadwaySummary, 0, len(r.Summaries))
+	var deleted int64
+	for _, s := range r.Summaries {
+		if s.ServiceDate.Format("2006-01-02") == day {
+			deleted++
+			continue
+		}
+		kept = append(kept, s)
+	}
+	r.Summaries = kept
+	return deleted, nil
+}
+
+func (r *HeadwaySummaryRepo) InsertBatch(_ context.Context, summaries []business.HeadwaySummary) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.Summaries = append(r.Summaries, summaries...)
+	return nil
+}
+
+func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFilter) ([]business.HeadwaySummary, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	day := filter.ServiceDate.Format("2006-01-02")
+	out := make([]business.HeadwaySummary, 0)
+	for _, s := range r.Summaries {
+		if s.ServiceDate.Format("2006-01-02") != day {
+			continue
+		}
+		if filter.Grain != "" && s.Grain != filter.Grain {
+			continue
+		}
+		if filter.Method != "" && s.Method != filter.Method {
+			continue
+		}
+		if filter.RouteID != "" && s.RouteID != filter.RouteID {
+			continue
+		}
+		if filter.Direction != "" && s.Direction != filter.Direction {
+			continue
+		}
+		if filter.StopID != "" && s.StopID != filter.StopID {
+			continue
+		}
+		if filter.Stop != "" {
+			stopQ := strings.ToLower(filter.Stop)
+			if s.StopID != filter.Stop && !strings.Contains(strings.ToLower(s.StopName), stopQ) {
+				continue
+			}
+		}
+		out = append(out, s)
+	}
+	return out, nil
 }

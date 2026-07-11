@@ -88,14 +88,17 @@ func main() {
 
 	var headwayRepo app.HeadwayRepository
 	var headwayJobRunRepo app.HeadwayJobRunRepository
+	var headwaySummaryRepo app.HeadwaySummaryRepository
 	if db != nil {
 		headwayRepo = pgstore.NewHeadwayRepo(db)
 		headwayJobRunRepo = pgstore.NewHeadwayJobRunRepo(db)
+		headwaySummaryRepo = pgstore.NewHeadwaySummaryRepo(db)
 	} else {
 		headwayRepo = &fake.HeadwayRepo{}
 		headwayJobRunRepo = &fake.HeadwayJobRunRepo{}
+		headwaySummaryRepo = &fake.HeadwaySummaryRepo{}
 	}
-	headwayRollup := app.NewHeadwayRollup(arrivalRepo, headwayRepo, headwayJobRunRepo)
+	headwayRollup := app.NewHeadwayRollup(arrivalRepo, headwayRepo, headwaySummaryRepo, headwayJobRunRepo)
 
 	routeService := app.NewRouteService(routeRepo, ridershipRepo)
 	a := api.New(api.Options{

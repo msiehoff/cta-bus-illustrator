@@ -13,6 +13,8 @@ type HeadwayRepository interface {
 	InsertBatch(ctx context.Context, headways []business.Headway) error
 	List(ctx context.Context, filter HeadwayListFilter) ([]business.Headway, error)
 	Count(ctx context.Context, filter HeadwayListFilter) (int64, error)
+	// ListAll returns matching headways without pagination (capped) for summary computation.
+	ListAll(ctx context.Context, filter HeadwayListFilter) ([]business.Headway, error)
 }
 
 // HeadwayListFilter scopes headway queries for admin / rider APIs.
@@ -34,4 +36,22 @@ type HeadwayJobRunRepository interface {
 	Update(ctx context.Context, run business.HeadwayJobRun) error
 	List(ctx context.Context, limit, offset int) ([]business.HeadwayJobRun, error)
 	Get(ctx context.Context, id int64) (business.HeadwayJobRun, error)
+}
+
+// HeadwaySummaryRepository persists daily headway aggregates.
+type HeadwaySummaryRepository interface {
+	DeleteForServiceDate(ctx context.Context, serviceDate time.Time) (int64, error)
+	InsertBatch(ctx context.Context, summaries []business.HeadwaySummary) error
+	List(ctx context.Context, filter HeadwaySummaryFilter) ([]business.HeadwaySummary, error)
+}
+
+// HeadwaySummaryFilter scopes reads of persisted summaries.
+type HeadwaySummaryFilter struct {
+	ServiceDate time.Time // required (date at midnight UTC calendar)
+	Grain       string    // optional
+	Method      string    // optional
+	RouteID     string
+	Direction   string
+	StopID      string // exact stop id; empty = any
+	Stop        string // id or name substring (for stop-grain list UX)
 }

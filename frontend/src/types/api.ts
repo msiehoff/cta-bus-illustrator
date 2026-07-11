@@ -107,6 +107,7 @@ export interface HeadwayJobRun {
   finishedAt?: string
   arrivalsProcessed: number
   headwaysWritten: number
+  summariesWritten?: number
   errorMessage?: string
 }
 
@@ -133,4 +134,28 @@ export interface ListHeadwaysResponse {
   total: number
   limit: number
   offset: number
+}
+
+export interface HeadwaySummaryStats {
+  count: number
+  meanMinutes: number
+  medianMinutes: number
+  stdDevMinutes: number
+  cv: number
+  avgWaitMinutes: number
+}
+
+export interface HeadwayStopSummary extends HeadwaySummaryStats {
+  stopId: string
+  stopName?: string
+  routeId: string
+  routeName?: string
+  direction: string
+}
+
+export interface HeadwaySummaryResponse {
+  pooled: HeadwaySummaryStats
+  equalStopWeight: HeadwaySummaryStats
+  byStop: HeadwayStopSummary[]
+  source?: 'stored' | 'computed' | string
 }
