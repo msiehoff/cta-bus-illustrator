@@ -49,11 +49,14 @@ func (r *ArrivalRepo) ListArrivals(_ context.Context, filter app.ArrivalFilter) 
 		VehicleID string    `gorm:"column:vehicle_id"`
 		Timestamp time.Time `gorm:"column:timestamp"`
 		StopName  *string   `gorm:"column:stop_name"`
+		RouteName *string   `gorm:"column:route_name"`
 	}
 
 	query := r.db.Table("arrivals").
-		Select("arrivals.stop_id, arrivals.route_id, arrivals.direction, arrivals.vehicle_id, arrivals.timestamp, stops.name AS stop_name").
-		Joins("LEFT JOIN stops ON stops.stop_id = arrivals.stop_id AND stops.route_id = arrivals.route_id AND stops.direction = arrivals.direction")
+		Select(`arrivals.stop_id, arrivals.route_id, arrivals.direction, arrivals.vehicle_id, arrivals.timestamp,
+			stops.name AS stop_name, routes.name AS route_name`).
+		Joins("LEFT JOIN stops ON stops.stop_id = arrivals.stop_id AND stops.route_id = arrivals.route_id AND stops.direction = arrivals.direction").
+		Joins("LEFT JOIN routes ON routes.external_id = arrivals.route_id AND routes.deleted_at IS NULL")
 	query = r.applyArrivalFilter(query, filter)
 
 	var rows []row
@@ -72,6 +75,9 @@ func (r *ArrivalRepo) ListArrivals(_ context.Context, filter app.ArrivalFilter) 
 		}
 		if row.StopName != nil {
 			arrivals[i].StopName = *row.StopName
+		}
+		if row.RouteName != nil {
+			arrivals[i].RouteName = *row.RouteName
 		}
 	}
 	return arrivals, nil

@@ -120,6 +120,27 @@ const AdminHeadways = () => {
             className={twMerge(filterInputClass, 'w-32')}
           />
         </label>
+        <div className="flex items-end">
+          <button
+            type="button"
+            onClick={() => {
+              setRoute('')
+              setDirection('')
+              setStop('')
+              setVehicle('')
+              resetOffset()
+            }}
+            disabled={!route && !direction && !stop && !vehicle}
+            className={twMerge(
+              'rounded-md border border-gray-800 px-3 py-2 text-sm',
+              !route && !direction && !stop && !vehicle
+                ? 'text-gray-600 cursor-not-allowed'
+                : 'text-gray-300 hover:bg-gray-950 hover:text-white',
+            )}
+          >
+            Clear filters
+          </button>
+        </div>
       </div>
 
       {error && <p className="text-red-400">{error}</p>}
@@ -183,7 +204,9 @@ const AdminHeadways = () => {
                           active={route === h.routeId}
                           onSelect={setFilter(setRoute)}
                           className="text-white"
-                        />
+                        >
+                          {h.routeName || h.routeId}
+                        </FilterValue>
                       </td>
                       <td className="px-4 py-3">
                         <FilterValue

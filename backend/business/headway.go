@@ -8,6 +8,7 @@ type Headway struct {
 	StopID         string
 	StopName       string // populated on list queries via join with stops
 	RouteID        string
+	RouteName      string // populated on list queries via join with routes
 	Direction      string
 	Timestamp      time.Time
 	HeadwayMinutes float64

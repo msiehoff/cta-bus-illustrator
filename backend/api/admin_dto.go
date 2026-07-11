@@ -29,6 +29,7 @@ type ArrivalResponse struct {
 	StopID    string `json:"stopId"`
 	StopName  string `json:"stopName,omitempty"`
 	RouteID   string `json:"routeId"`
+	RouteName string `json:"routeName,omitempty"`
 	Direction string `json:"direction"`
 	VehicleID string `json:"vehicleId"`
 	Timestamp string `json:"timestamp"`
@@ -63,6 +64,7 @@ type HeadwayResponse struct {
 	StopID         string  `json:"stopId"`
 	StopName       string  `json:"stopName,omitempty"`
 	RouteID        string  `json:"routeId"`
+	RouteName      string  `json:"routeName,omitempty"`
 	Direction      string  `json:"direction"`
 	Timestamp      string  `json:"timestamp"`
 	HeadwayMinutes float64 `json:"headwayMinutes"`
@@ -122,6 +124,7 @@ func toArrivalResponse(arrival business.Arrival) ArrivalResponse {
 		StopID:    arrival.StopID,
 		StopName:  arrival.StopName,
 		RouteID:   arrival.RouteID,
+		RouteName: arrival.RouteName,
 		Direction: arrival.Direction,
 		VehicleID: arrival.VehicleID,
 		Timestamp: arrival.Timestamp.UTC().Format(time.RFC3339),
@@ -133,6 +136,7 @@ func toHeadwayResponse(h business.Headway) HeadwayResponse {
 		StopID:         h.StopID,
 		StopName:       h.StopName,
 		RouteID:        h.RouteID,
+		RouteName:      h.RouteName,
 		Direction:      h.Direction,
 		Timestamp:      h.Timestamp.UTC().Format(time.RFC3339),
 		HeadwayMinutes: h.HeadwayMinutes,

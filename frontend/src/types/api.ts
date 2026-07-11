@@ -85,6 +85,7 @@ export interface ArrivalRecord {
   stopId: string
   stopName?: string
   routeId: string
+  routeName?: string
   direction: string
   vehicleId: string
   timestamp: string
@@ -119,6 +120,7 @@ export interface HeadwayRecord {
   stopId: string
   stopName?: string
   routeId: string
+  routeName?: string
   direction: string
   timestamp: string
   headwayMinutes: number

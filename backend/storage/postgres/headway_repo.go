@@ -64,13 +64,15 @@ func (r *HeadwayRepo) List(_ context.Context, filter app.HeadwayListFilter) ([]b
 		FromVehicleID  string    `gorm:"column:from_vehicle_id"`
 		ToVehicleID    string    `gorm:"column:to_vehicle_id"`
 		StopName       *string   `gorm:"column:stop_name"`
+		RouteName      *string   `gorm:"column:route_name"`
 	}
 
 	query := r.db.Table("headways").
 		Select(`headways.stop_id, headways.route_id, headways.direction, headways.timestamp,
 			headways.headway_minutes, headways.from_vehicle_id, headways.to_vehicle_id,
-			stops.name AS stop_name`).
-		Joins("LEFT JOIN stops ON stops.stop_id = headways.stop_id AND stops.route_id = headways.route_id AND stops.direction = headways.direction")
+			stops.name AS stop_name, routes.name AS route_name`).
+		Joins("LEFT JOIN stops ON stops.stop_id = headways.stop_id AND stops.route_id = headways.route_id AND stops.direction = headways.direction").
+		Joins("LEFT JOIN routes ON routes.external_id = headways.route_id AND routes.deleted_at IS NULL")
 	query = applyHeadwayListFilter(query, filter)
 
 	var rows []row
@@ -91,6 +93,9 @@ func (r *HeadwayRepo) List(_ context.Context, filter app.HeadwayListFilter) ([]b
 		}
 		if row.StopName != nil {
 			out[i].StopName = *row.StopName
+		}
+		if row.RouteName != nil {
+			out[i].RouteName = *row.RouteName
 		}
 	}
 	return out, nil
