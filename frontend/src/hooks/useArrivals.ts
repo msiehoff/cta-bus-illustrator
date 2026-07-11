@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import type { ListArrivalsResponse } from '../types/api'
 import { adminFetch, ADMIN_API_BASE } from '../lib/adminApi'
 
-interface ArrivalFilters {
+export interface ArrivalFilters {
   route?: string
   direction?: string
+  stop?: string
+  vehicle?: string
+  sort?: 'asc' | 'desc'
   limit?: number
   offset?: number
 }
@@ -23,6 +26,9 @@ export const useArrivals = (filters: ArrivalFilters) => {
         const params = new URLSearchParams()
         if (filters.route) params.set('route', filters.route)
         if (filters.direction) params.set('direction', filters.direction)
+        if (filters.stop) params.set('stop', filters.stop)
+        if (filters.vehicle) params.set('vehicle', filters.vehicle)
+        if (filters.sort) params.set('sort', filters.sort)
         if (filters.limit != null) params.set('limit', String(filters.limit))
         if (filters.offset != null) params.set('offset', String(filters.offset))
 
@@ -48,7 +54,15 @@ export const useArrivals = (filters: ArrivalFilters) => {
       cancelled = true
       window.clearInterval(id)
     }
-  }, [filters.route, filters.direction, filters.limit, filters.offset])
+  }, [
+    filters.route,
+    filters.direction,
+    filters.stop,
+    filters.vehicle,
+    filters.sort,
+    filters.limit,
+    filters.offset,
+  ])
 
   return { data, loading, error }
 }

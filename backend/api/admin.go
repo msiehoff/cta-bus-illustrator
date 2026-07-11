@@ -97,6 +97,9 @@ func (a *API) handleAdminListArrivals(c *gin.Context) {
 	filter := app.ArrivalFilter{
 		RouteID:   c.Query("route"),
 		Direction: c.Query("direction"),
+		Stop:      c.Query("stop"),
+		VehicleID: c.Query("vehicle"),
+		SortAsc:   c.Query("sort") == "asc",
 		Limit:     limit,
 		Offset:    offset,
 	}
@@ -110,6 +113,8 @@ func (a *API) handleAdminListArrivals(c *gin.Context) {
 	total, err := a.arrivalRepo.CountArrivals(c.Request.Context(), app.ArrivalFilter{
 		RouteID:   filter.RouteID,
 		Direction: filter.Direction,
+		Stop:      filter.Stop,
+		VehicleID: filter.VehicleID,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

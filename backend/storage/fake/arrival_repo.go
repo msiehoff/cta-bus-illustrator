@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/msiehoff/cta-bus-illustrator/backend/app"
@@ -68,10 +69,24 @@ func (r *ArrivalRepo) filteredArrivals(filter app.ArrivalFilter) []business.Arri
 		if filter.Direction != "" && arrival.Direction != filter.Direction {
 			continue
 		}
+		if filter.VehicleID != "" && arrival.VehicleID != filter.VehicleID {
+			continue
+		}
+		if filter.Stop != "" {
+			stopQ := strings.ToLower(filter.Stop)
+			idMatch := arrival.StopID == filter.Stop
+			nameMatch := strings.Contains(strings.ToLower(arrival.StopName), stopQ)
+			if !idMatch && !nameMatch {
+				continue
+			}
+		}
 		matches = append(matches, arrival)
 	}
 
 	sort.Slice(matches, func(i, j int) bool {
+		if filter.SortAsc {
+			return matches[i].Timestamp.Before(matches[j].Timestamp)
+		}
 		return matches[i].Timestamp.After(matches[j].Timestamp)
 	})
 	return matches

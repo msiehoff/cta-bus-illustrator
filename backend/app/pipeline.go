@@ -20,8 +20,14 @@ type CTAVehicleClient interface {
 type ArrivalFilter struct {
 	RouteID   string
 	Direction string
-	Limit     int
-	Offset    int
+	// Stop matches stop_id exactly or stop name (case-insensitive substring).
+	Stop string
+	// VehicleID filters by vehicle_id (exact match).
+	VehicleID string
+	// SortAsc sorts by timestamp ascending when true; default is newest first.
+	SortAsc bool
+	Limit   int
+	Offset  int
 }
 
 // ArrivalRepository is the port for persisting detected arrival events.

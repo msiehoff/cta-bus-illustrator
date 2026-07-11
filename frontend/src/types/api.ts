@@ -83,6 +83,7 @@ export interface PipelineStatusResponse {
 
 export interface ArrivalRecord {
   stopId: string
+  stopName?: string
   routeId: string
   direction: string
   vehicleId: string

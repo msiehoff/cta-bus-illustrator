@@ -101,6 +101,17 @@ func (r *PipelineRunner) poll(ctx context.Context) {
 		}
 		log.Printf("pipeline: received %d pings for routes %v", len(pings), batch)
 		totalPings += len(pings)
+		if DebugEnabled() && len(pings) > 0 {
+			sample := pings
+			if len(sample) > 3 {
+				sample = sample[:3]
+			}
+			for _, ping := range sample {
+				Debugf("pipeline: sample ping vehicle=%s route=%s dir=%q lat=%.5f lon=%.5f ts=%s",
+					ping.VehicleID, ping.RouteID, ping.Direction, ping.Lat, ping.Lon,
+					ping.Timestamp.Format("15:04:05"))
+			}
+		}
 		for _, ping := range pings {
 			r.detector.ProcessPing(ctx, ping)
 		}

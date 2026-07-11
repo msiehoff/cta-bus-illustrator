@@ -44,7 +44,7 @@ func TestVehicleClient_GetVehicles(t *testing.T) {
 	}
 
 	p := pings[0]
-	if p.VehicleID != "1234" || p.RouteID != "8" || p.Direction != "Northbound" {
+	if p.VehicleID != "1234" || p.RouteID != "8" || p.Direction != "" {
 		t.Errorf("unexpected ping: %+v", p)
 	}
 	if p.Lat != 41.8781 || p.Lon != -87.6298 {

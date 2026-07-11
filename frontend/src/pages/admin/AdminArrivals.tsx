@@ -4,16 +4,37 @@ import { useArrivals } from '../../hooks/useArrivals'
 
 const formatTime = (value: string) => new Date(value).toLocaleString()
 
+const filterInputClass =
+  'mt-1 block rounded-md bg-gray-950 border border-gray-800 px-3 py-2 text-white'
+
 const AdminArrivals = () => {
   const [route, setRoute] = useState('')
   const [direction, setDirection] = useState('')
+  const [stop, setStop] = useState('')
+  const [vehicle, setVehicle] = useState('')
+  const [sortAsc, setSortAsc] = useState(false)
   const [offset, setOffset] = useState(0)
   const limit = 50
 
-  const { data, loading, error } = useArrivals({ route, direction, limit, offset })
+  const { data, loading, error } = useArrivals({
+    route,
+    direction,
+    stop,
+    vehicle,
+    sort: sortAsc ? 'asc' : 'desc',
+    limit,
+    offset,
+  })
 
   const page = useMemo(() => Math.floor(offset / limit) + 1, [offset, limit])
   const totalPages = data ? Math.max(1, Math.ceil(data.total / limit)) : 1
+
+  const resetOffset = () => setOffset(0)
+
+  const toggleTimeSort = () => {
+    setSortAsc(prev => !prev)
+    resetOffset()
+  }
 
   return (
     <div className="space-y-6">
@@ -31,10 +52,10 @@ const AdminArrivals = () => {
             value={route}
             onChange={e => {
               setRoute(e.target.value)
-              setOffset(0)
+              resetOffset()
             }}
             placeholder="e.g. 8"
-            className="mt-1 block w-28 rounded-md bg-gray-950 border border-gray-800 px-3 py-2 text-white"
+            className={twMerge(filterInputClass, 'w-28')}
           />
         </label>
         <label className="text-sm text-gray-400">
@@ -43,10 +64,34 @@ const AdminArrivals = () => {
             value={direction}
             onChange={e => {
               setDirection(e.target.value)
-              setOffset(0)
+              resetOffset()
             }}
             placeholder="Northbound"
-            className="mt-1 block w-40 rounded-md bg-gray-950 border border-gray-800 px-3 py-2 text-white"
+            className={twMerge(filterInputClass, 'w-40')}
+          />
+        </label>
+        <label className="text-sm text-gray-400">
+          Stop
+          <input
+            value={stop}
+            onChange={e => {
+              setStop(e.target.value)
+              resetOffset()
+            }}
+            placeholder="Name or ID"
+            className={twMerge(filterInputClass, 'w-48')}
+          />
+        </label>
+        <label className="text-sm text-gray-400">
+          Vehicle
+          <input
+            value={vehicle}
+            onChange={e => {
+              setVehicle(e.target.value)
+              resetOffset()
+            }}
+            placeholder="e.g. 8001"
+            className={twMerge(filterInputClass, 'w-32')}
           />
         </label>
       </div>
@@ -58,7 +103,18 @@ const AdminArrivals = () => {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-950/80 text-gray-400">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Time</th>
+                <th className="px-4 py-3 text-left font-medium">
+                  <button
+                    type="button"
+                    onClick={toggleTimeSort}
+                    className="inline-flex items-center gap-1 hover:text-white"
+                  >
+                    Time
+                    <span className="text-xs text-gray-500">
+                      {sortAsc ? '↑' : '↓'}
+                    </span>
+                  </button>
+                </th>
                 <th className="px-4 py-3 text-left font-medium">Route</th>
                 <th className="px-4 py-3 text-left font-medium">Direction</th>
                 <th className="px-4 py-3 text-left font-medium">Vehicle</th>
@@ -74,12 +130,19 @@ const AdminArrivals = () => {
                 </tr>
               ) : data?.arrivals.length ? (
                 data.arrivals.map(arrival => (
-                  <tr key={`${arrival.vehicleId}-${arrival.timestamp}-${arrival.stopId}`} className="border-t border-gray-800">
-                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{formatTime(arrival.timestamp)}</td>
+                  <tr
+                    key={`${arrival.vehicleId}-${arrival.timestamp}-${arrival.stopId}`}
+                    className="border-t border-gray-800"
+                  >
+                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
+                      {formatTime(arrival.timestamp)}
+                    </td>
                     <td className="px-4 py-3 text-white">{arrival.routeId}</td>
                     <td className="px-4 py-3 text-gray-300">{arrival.direction}</td>
                     <td className="px-4 py-3 text-gray-300">{arrival.vehicleId}</td>
-                    <td className="px-4 py-3 text-gray-300">{arrival.stopId}</td>
+                    <td className="px-4 py-3 text-gray-300">
+                      {arrival.stopName || arrival.stopId}
+                    </td>
                   </tr>
                 ))
               ) : (
@@ -94,9 +157,7 @@ const AdminArrivals = () => {
         </div>
 
         <div className="flex items-center justify-between px-4 py-3 border-t border-gray-800 text-sm text-gray-400">
-          <span>
-            {data ? `${data.total} total` : '—'}
-          </span>
+          <span>{data ? `${data.total} total` : '—'}</span>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -109,14 +170,18 @@ const AdminArrivals = () => {
             >
               Previous
             </button>
-            <span>Page {page} / {totalPages}</span>
+            <span>
+              Page {page} / {totalPages}
+            </span>
             <button
               type="button"
               disabled={!data || offset + limit >= data.total}
               onClick={() => setOffset(offset + limit)}
               className={twMerge(
                 'px-3 py-1 rounded-md border border-gray-800',
-                !data || offset + limit >= data.total ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-950',
+                !data || offset + limit >= data.total
+                  ? 'opacity-40 cursor-not-allowed'
+                  : 'hover:bg-gray-950',
               )}
             >
               Next

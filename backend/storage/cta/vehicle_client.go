@@ -87,15 +87,13 @@ func (v *VehicleClient) toVehiclePing(vehicle Vehicle) (business.VehiclePing, er
 		ts = time.Now()
 	}
 
-	direction := strings.TrimSpace(vehicle.Stsd)
-	if direction == "" {
-		direction = strings.TrimSpace(vehicle.Des)
-	}
-
+	// CTA getvehicles does not include a route direction (e.g. "Northbound").
+	// stsd is the trip start date; des is the destination name. Leave Direction
+	// empty — ArrivalDetector matches stops by route and uses the stop's direction.
 	return business.VehiclePing{
 		VehicleID: vehicle.Vid,
 		RouteID:   vehicle.Rt,
-		Direction: direction,
+		Direction: "",
 		Lat:       lat,
 		Lon:       lon,
 		Timestamp: ts,

@@ -134,3 +134,25 @@ func TestArrivalDetector_SkipsUnknownRoute(t *testing.T) {
 		t.Errorf("expected no arrivals for unknown route, got %d", len(repo.All()))
 	}
 }
+
+func TestArrivalDetector_MatchesWithoutPingDirection(t *testing.T) {
+	repo := &fake.ArrivalRepo{}
+	d := app.NewArrivalDetector(repo)
+	d.LoadStops("8", "Northbound", halstedStops())
+
+	// Real CTA pings have no usable direction field.
+	ping := business.VehiclePing{
+		VehicleID: "v1", RouteID: "8", Direction: "",
+		Lat: 41.8530, Lon: -87.6471, Timestamp: time.Now(),
+	}
+	d.ProcessPing(context.Background(), ping)
+
+	arrivals := repo.All()
+	if len(arrivals) != 1 {
+		t.Fatalf("expected 1 arrival via route-level fallback, got %d", len(arrivals))
+	}
+	if arrivals[0].Direction != "Northbound" {
+		t.Errorf("expected direction from stop, got %q", arrivals[0].Direction)
+	}
+}
+
