@@ -114,3 +114,21 @@ export interface ListHeadwayJobRunsResponse {
   limit: number
   offset: number
 }
+
+export interface HeadwayRecord {
+  stopId: string
+  stopName?: string
+  routeId: string
+  direction: string
+  timestamp: string
+  headwayMinutes: number
+  fromVehicleId?: string
+  toVehicleId?: string
+}
+
+export interface ListHeadwaysResponse {
+  headways: HeadwayRecord[]
+  total: number
+  limit: number
+  offset: number
+}

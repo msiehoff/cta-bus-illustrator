@@ -24,6 +24,7 @@ func (a *API) registerAdminRoutes() {
 		{
 			protected.GET("/pipeline/status", a.handleAdminPipelineStatus)
 			protected.GET("/arrivals", a.handleAdminListArrivals)
+			protected.GET("/headways", a.handleAdminListHeadways)
 		}
 	}
 
@@ -128,6 +129,72 @@ func (a *API) handleAdminListArrivals(c *gin.Context) {
 	}
 	for i, arrival := range arrivals {
 		resp.Arrivals[i] = toArrivalResponse(arrival)
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (a *API) handleAdminListHeadways(c *gin.Context) {
+	if a.headwayRepo == nil {
+		c.JSON(http.StatusOK, ListHeadwaysResponse{
+			Headways: []HeadwayResponse{},
+			Total:    0,
+			Limit:    50,
+			Offset:   0,
+		})
+		return
+	}
+
+	limit := parseIntQuery(c, "limit", 50, 200)
+	offset := parseIntQuery(c, "offset", 0, 1_000_000)
+	filter := app.HeadwayListFilter{
+		RouteID:   c.Query("route"),
+		Direction: c.Query("direction"),
+		Stop:      c.Query("stop"),
+		VehicleID: c.Query("vehicle"),
+		SortAsc:   c.Query("sort") == "asc",
+		Limit:     limit,
+		Offset:    offset,
+	}
+
+	if date := c.Query("date"); date != "" {
+		serviceDate, err := app.ParseServiceDate(date)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		start, end := app.ServiceDateBounds(serviceDate)
+		filter.From = &start
+		filter.To = &end
+	}
+
+	headways, err := a.headwayRepo.List(c.Request.Context(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	total, err := a.headwayRepo.Count(c.Request.Context(), app.HeadwayListFilter{
+		RouteID:   filter.RouteID,
+		Direction: filter.Direction,
+		Stop:      filter.Stop,
+		VehicleID: filter.VehicleID,
+		From:      filter.From,
+		To:        filter.To,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp := ListHeadwaysResponse{
+		Headways: make([]HeadwayResponse, len(headways)),
+		Total:    total,
+		Limit:    limit,
+		Offset:   offset,
+	}
+	for i, h := range headways {
+		resp.Headways[i] = toHeadwayResponse(h)
 	}
 
 	c.JSON(http.StatusOK, resp)

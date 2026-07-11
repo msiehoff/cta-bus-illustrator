@@ -45,6 +45,9 @@ const AdminLayout = () => {
           <NavLink to="/admin/headways" className={navLinkClass}>
             Headways
           </NavLink>
+          <NavLink to="/admin/headway-jobs" className={navLinkClass}>
+            Headway Jobs
+          </NavLink>
           <NavLink to="/" className="block px-3 py-2 rounded-md text-sm text-gray-500 hover:text-white">
             ← Back to site
           </NavLink>

@@ -106,6 +106,54 @@ func TestHeadwayRunWithAdminSession(t *testing.T) {
 	}
 }
 
+func TestAdminListHeadways(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	auth := &AdminAuth{
+		username: "admin",
+		password: "secret",
+		secret:   []byte("test-secret"),
+	}
+	headwayRepo := &fake.HeadwayRepo{}
+	_ = headwayRepo.InsertBatch(t.Context(), []business.Headway{
+		{
+			StopID: "s1", RouteID: "8", Direction: "Northbound",
+			Timestamp: time.Date(2026, 7, 10, 8, 10, 0, 0, time.UTC),
+			HeadwayMinutes: 10, FromVehicleID: "a", ToVehicleID: "b",
+		},
+	})
+
+	api := New(Options{
+		RouteService: app.NewRouteService(&fake.RouteRepo{}, &fake.RidershipRepo{}),
+		HeadwayRepo:  headwayRepo,
+		AdminAuth:    auth,
+	})
+
+	token, err := auth.Login("admin", "secret")
+	if err != nil {
+		t.Fatalf("login: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/headways?route=8", nil)
+	req.AddCookie(&http.Cookie{Name: adminSessionCookie, Value: token})
+	rec := httptest.NewRecorder()
+	api.router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var resp ListHeadwaysResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Total != 1 || len(resp.Headways) != 1 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if resp.Headways[0].HeadwayMinutes != 10 {
+		t.Fatalf("minutes = %v", resp.Headways[0].HeadwayMinutes)
+	}
+}
+
 func TestHeadwayRunUnauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -123,3 +171,4 @@ func TestHeadwayRunUnauthorized(t *testing.T) {
 		t.Fatalf("expected 401, got %d", rec.Code)
 	}
 }
+

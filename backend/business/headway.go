@@ -6,6 +6,7 @@ import "time"
 // Timestamp is the later of the two arrivals.
 type Headway struct {
 	StopID         string
+	StopName       string // populated on list queries via join with stops
 	RouteID        string
 	Direction      string
 	Timestamp      time.Time

@@ -1,150 +1,218 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { runHeadwayJob, useHeadwayJobRuns } from '../../hooks/useHeadwayJobs'
-import type { HeadwayJobRun } from '../../types/api'
+import { useHeadways } from '../../hooks/useHeadways'
 
-const formatTime = (value?: string) => {
-  if (!value) return '—'
-  return new Date(value).toLocaleString()
+const formatTime = (value: string) => new Date(value).toLocaleString()
+
+const formatMinutes = (mins: number) => {
+  if (Number.isInteger(mins)) return String(mins)
+  return mins.toFixed(1)
 }
 
-const yesterdayChicago = () => {
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Chicago',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-  const parts = fmt.formatToParts(new Date(Date.now() - 24 * 60 * 60 * 1000))
-  const y = parts.find(p => p.type === 'year')?.value
-  const m = parts.find(p => p.type === 'month')?.value
-  const d = parts.find(p => p.type === 'day')?.value
-  return `${y}-${m}-${d}`
-}
-
-const statusClass = (status: string) => {
-  switch (status) {
-    case 'success':
-      return 'text-emerald-400'
-    case 'failed':
-      return 'text-red-400'
-    case 'running':
-      return 'text-amber-400'
-    default:
-      return 'text-gray-400'
-  }
-}
+const filterInputClass =
+  'mt-1 block rounded-md bg-gray-950 border border-gray-800 px-3 py-2 text-white'
 
 const AdminHeadways = () => {
-  const { data, loading, error, reload } = useHeadwayJobRuns()
-  const [serviceDate, setServiceDate] = useState(yesterdayChicago)
-  const [running, setRunning] = useState(false)
-  const [runError, setRunError] = useState<string | null>(null)
-  const [lastRun, setLastRun] = useState<HeadwayJobRun | null>(null)
+  const [route, setRoute] = useState('')
+  const [direction, setDirection] = useState('')
+  const [stop, setStop] = useState('')
+  const [vehicle, setVehicle] = useState('')
+  const [date, setDate] = useState('')
+  const [sortAsc, setSortAsc] = useState(false)
+  const [offset, setOffset] = useState(0)
+  const limit = 50
 
-  const handleRun = async () => {
-    setRunning(true)
-    setRunError(null)
-    try {
-      const result = await runHeadwayJob(serviceDate)
-      setLastRun(result)
-      await reload()
-    } catch (err) {
-      setRunError(err instanceof Error ? err.message : 'Run failed')
-    } finally {
-      setRunning(false)
-    }
+  const { data, loading, error } = useHeadways({
+    route,
+    direction,
+    stop,
+    vehicle,
+    date,
+    sort: sortAsc ? 'asc' : 'desc',
+    limit,
+    offset,
+  })
+
+  const page = useMemo(() => Math.floor(offset / limit) + 1, [offset, limit])
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / limit)) : 1
+
+  const resetOffset = () => setOffset(0)
+
+  const toggleTimeSort = () => {
+    setSortAsc(prev => !prev)
+    resetOffset()
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Headway Jobs</h2>
+        <h2 className="text-2xl font-semibold">Observed Headways</h2>
         <p className="text-sm text-gray-400 mt-1">
-          Compute observed headways for a Chicago service date. Idempotent per day.
+          Gaps between consecutive arrivals at a stop. Run a job under Headway Jobs to compute.
         </p>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-4">
-        <h3 className="text-sm font-medium text-gray-300">Run rollup</h3>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="text-sm text-gray-400">
-            Service date
-            <input
-              type="date"
-              value={serviceDate}
-              onChange={e => setServiceDate(e.target.value)}
-              className="mt-1 block rounded-md bg-gray-950 border border-gray-800 px-3 py-2 text-white"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={handleRun}
-            disabled={running || !serviceDate}
-            className={twMerge(
-              'rounded-md px-4 py-2 text-sm font-medium',
-              running
-                ? 'bg-gray-800 text-gray-500'
-                : 'bg-red-900/60 text-red-100 hover:bg-red-900',
-            )}
-          >
-            {running ? 'Running…' : 'Run headway job'}
-          </button>
-        </div>
-        {runError && <p className="text-sm text-red-400">{runError}</p>}
-        {lastRun && (
-          <p className="text-sm text-gray-400">
-            Last trigger: <span className={statusClass(lastRun.status)}>{lastRun.status}</span>
-            {' · '}
-            {lastRun.arrivalsProcessed} arrivals → {lastRun.headwaysWritten} headways
-          </p>
-        )}
+      <div className="flex flex-wrap gap-3">
+        <label className="text-sm text-gray-400">
+          Service date
+          <input
+            type="date"
+            value={date}
+            onChange={e => {
+              setDate(e.target.value)
+              resetOffset()
+            }}
+            className={twMerge(filterInputClass, 'w-40')}
+          />
+        </label>
+        <label className="text-sm text-gray-400">
+          Route
+          <input
+            value={route}
+            onChange={e => {
+              setRoute(e.target.value)
+              resetOffset()
+            }}
+            placeholder="e.g. 8"
+            className={twMerge(filterInputClass, 'w-28')}
+          />
+        </label>
+        <label className="text-sm text-gray-400">
+          Direction
+          <input
+            value={direction}
+            onChange={e => {
+              setDirection(e.target.value)
+              resetOffset()
+            }}
+            placeholder="Northbound"
+            className={twMerge(filterInputClass, 'w-40')}
+          />
+        </label>
+        <label className="text-sm text-gray-400">
+          Stop
+          <input
+            value={stop}
+            onChange={e => {
+              setStop(e.target.value)
+              resetOffset()
+            }}
+            placeholder="Name or ID"
+            className={twMerge(filterInputClass, 'w-48')}
+          />
+        </label>
+        <label className="text-sm text-gray-400">
+          Vehicle
+          <input
+            value={vehicle}
+            onChange={e => {
+              setVehicle(e.target.value)
+              resetOffset()
+            }}
+            placeholder="from or to"
+            className={twMerge(filterInputClass, 'w-32')}
+          />
+        </label>
       </div>
 
-      <div>
-        <h3 className="text-sm font-medium text-gray-300 mb-3">Recent runs</h3>
-        {loading && !data && <p className="text-gray-400">Loading…</p>}
-        {error && <p className="text-red-400">{error}</p>}
-        {data && data.runs.length === 0 && (
-          <p className="text-sm text-gray-500">No headway jobs yet.</p>
-        )}
-        {data && data.runs.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border border-gray-800">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-900 text-left text-gray-400">
+      {error && <p className="text-red-400">{error}</p>}
+
+      <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-950/80 text-gray-400">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">
+                  <button
+                    type="button"
+                    onClick={toggleTimeSort}
+                    className="inline-flex items-center gap-1 hover:text-white"
+                  >
+                    Time
+                    <span className="text-xs text-gray-500">
+                      {sortAsc ? '↑' : '↓'}
+                    </span>
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left font-medium">Minutes</th>
+                <th className="px-4 py-3 text-left font-medium">Route</th>
+                <th className="px-4 py-3 text-left font-medium">Direction</th>
+                <th className="px-4 py-3 text-left font-medium">From → To</th>
+                <th className="px-4 py-3 text-left font-medium">Stop</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && !data ? (
                 <tr>
-                  <th className="px-3 py-2 font-medium">Service date</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium">Trigger</th>
-                  <th className="px-3 py-2 font-medium">Arrivals</th>
-                  <th className="px-3 py-2 font-medium">Headways</th>
-                  <th className="px-3 py-2 font-medium">Started</th>
-                  <th className="px-3 py-2 font-medium">Finished</th>
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                    Loading headways…
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.runs.map(run => (
-                  <tr key={run.id} className="border-t border-gray-800">
-                    <td className="px-3 py-2">{run.serviceDate}</td>
-                    <td className={twMerge('px-3 py-2', statusClass(run.status))}>
-                      {run.status}
-                      {run.errorMessage ? (
-                        <span className="block text-xs text-red-400/80 max-w-xs truncate" title={run.errorMessage}>
-                          {run.errorMessage}
-                        </span>
-                      ) : null}
+              ) : data?.headways.length ? (
+                data.headways.map(h => (
+                  <tr
+                    key={`${h.stopId}-${h.routeId}-${h.direction}-${h.timestamp}-${h.toVehicleId}`}
+                    className="border-t border-gray-800"
+                  >
+                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
+                      {formatTime(h.timestamp)}
                     </td>
-                    <td className="px-3 py-2 text-gray-400">{run.triggeredBy}</td>
-                    <td className="px-3 py-2">{run.arrivalsProcessed}</td>
-                    <td className="px-3 py-2">{run.headwaysWritten}</td>
-                    <td className="px-3 py-2 text-gray-400">{formatTime(run.startedAt)}</td>
-                    <td className="px-3 py-2 text-gray-400">{formatTime(run.finishedAt)}</td>
+                    <td className="px-4 py-3 text-white font-medium tabular-nums">
+                      {formatMinutes(h.headwayMinutes)}
+                    </td>
+                    <td className="px-4 py-3 text-white">{h.routeId}</td>
+                    <td className="px-4 py-3 text-gray-300">{h.direction}</td>
+                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
+                      {h.fromVehicleId || '—'} → {h.toVehicleId || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-300">
+                      {h.stopName || h.stopId}
+                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                    No headways yet. Run a headway job first.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-800 text-sm text-gray-400">
+          <span>{data ? `${data.total} total` : '—'}</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={offset === 0}
+              onClick={() => setOffset(Math.max(0, offset - limit))}
+              className={twMerge(
+                'px-3 py-1 rounded-md border border-gray-800',
+                offset === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-950',
+              )}
+            >
+              Previous
+            </button>
+            <span>
+              Page {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={!data || offset + limit >= data.total}
+              onClick={() => setOffset(offset + limit)}
+              className={twMerge(
+                'px-3 py-1 rounded-md border border-gray-800',
+                !data || offset + limit >= data.total
+                  ? 'opacity-40 cursor-not-allowed'
+                  : 'hover:bg-gray-950',
+              )}
+            >
+              Next
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

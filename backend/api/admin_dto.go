@@ -59,6 +59,24 @@ type ListHeadwayJobRunsResponse struct {
 	Offset int                     `json:"offset"`
 }
 
+type HeadwayResponse struct {
+	StopID         string  `json:"stopId"`
+	StopName       string  `json:"stopName,omitempty"`
+	RouteID        string  `json:"routeId"`
+	Direction      string  `json:"direction"`
+	Timestamp      string  `json:"timestamp"`
+	HeadwayMinutes float64 `json:"headwayMinutes"`
+	FromVehicleID  string  `json:"fromVehicleId,omitempty"`
+	ToVehicleID    string  `json:"toVehicleId,omitempty"`
+}
+
+type ListHeadwaysResponse struct {
+	Headways []HeadwayResponse `json:"headways"`
+	Total    int64             `json:"total"`
+	Limit    int               `json:"limit"`
+	Offset   int               `json:"offset"`
+}
+
 func HeadwayJobRunResponseFrom(run business.HeadwayJobRun) HeadwayJobRunResponse {
 	resp := HeadwayJobRunResponse{
 		ID:                run.ID,
@@ -107,5 +125,18 @@ func toArrivalResponse(arrival business.Arrival) ArrivalResponse {
 		Direction: arrival.Direction,
 		VehicleID: arrival.VehicleID,
 		Timestamp: arrival.Timestamp.UTC().Format(time.RFC3339),
+	}
+}
+
+func toHeadwayResponse(h business.Headway) HeadwayResponse {
+	return HeadwayResponse{
+		StopID:         h.StopID,
+		StopName:       h.StopName,
+		RouteID:        h.RouteID,
+		Direction:      h.Direction,
+		Timestamp:      h.Timestamp.UTC().Format(time.RFC3339),
+		HeadwayMinutes: h.HeadwayMinutes,
+		FromVehicleID:  h.FromVehicleID,
+		ToVehicleID:    h.ToVehicleID,
 	}
 }

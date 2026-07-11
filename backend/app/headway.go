@@ -11,15 +11,19 @@ import (
 type HeadwayRepository interface {
 	DeleteInRange(ctx context.Context, start, end time.Time) (int64, error)
 	InsertBatch(ctx context.Context, headways []business.Headway) error
-	ListInRange(ctx context.Context, start, end time.Time, filter HeadwayListFilter) ([]business.Headway, error)
-	CountInRange(ctx context.Context, start, end time.Time, filter HeadwayListFilter) (int64, error)
+	List(ctx context.Context, filter HeadwayListFilter) ([]business.Headway, error)
+	Count(ctx context.Context, filter HeadwayListFilter) (int64, error)
 }
 
 // HeadwayListFilter scopes headway queries for admin / rider APIs.
 type HeadwayListFilter struct {
 	RouteID   string
 	Direction string
-	StopID    string
+	Stop      string // stop ID exact or name substring
+	VehicleID string // matches from_vehicle_id or to_vehicle_id
+	From      *time.Time
+	To        *time.Time
+	SortAsc   bool
 	Limit     int
 	Offset    int
 }

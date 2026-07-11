@@ -103,6 +103,7 @@ func main() {
 		CtaDataSrc:     ctaDataSrc,
 		PipelineRunner: pipelineRunner,
 		ArrivalRepo:    arrivalRepo,
+		HeadwayRepo:    headwayRepo,
 		HeadwayRollup:  headwayRollup,
 		AdminAuth:      adminAuth,
 		JobTokenAuth:   jobTokenAuth,

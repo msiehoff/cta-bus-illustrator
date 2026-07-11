@@ -2,6 +2,8 @@ package fake
 
 import (
 	"context"
+	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -40,62 +42,65 @@ func (r *HeadwayRepo) InsertBatch(_ context.Context, headways []business.Headway
 	return nil
 }
 
-func (r *HeadwayRepo) ListInRange(_ context.Context, start, end time.Time, filter app.HeadwayListFilter) ([]business.Headway, error) {
+func (r *HeadwayRepo) List(_ context.Context, filter app.HeadwayListFilter) ([]business.Headway, error) {
+	matched := r.filtered(filter)
+	sort.SliceStable(matched, func(i, j int) bool {
+		if filter.SortAsc {
+			return matched[i].Timestamp.Before(matched[j].Timestamp)
+		}
+		return matched[j].Timestamp.Before(matched[i].Timestamp)
+	})
+
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if filter.Offset >= len(matched) {
+		return []business.Headway{}, nil
+	}
+	end := filter.Offset + limit
+	if end > len(matched) {
+		end = len(matched)
+	}
+	return matched[filter.Offset:end], nil
+}
+
+func (r *HeadwayRepo) Count(_ context.Context, filter app.HeadwayListFilter) (int64, error) {
+	return int64(len(r.filtered(filter))), nil
+}
+
+func (r *HeadwayRepo) filtered(filter app.HeadwayListFilter) []business.Headway {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	out := make([]business.Headway, 0)
+	stopQ := strings.ToLower(filter.Stop)
 	for _, h := range r.Headways {
-		if h.Timestamp.Before(start) || !h.Timestamp.Before(end) {
-			continue
-		}
 		if filter.RouteID != "" && h.RouteID != filter.RouteID {
 			continue
 		}
 		if filter.Direction != "" && h.Direction != filter.Direction {
 			continue
 		}
-		if filter.StopID != "" && h.StopID != filter.StopID {
+		if filter.VehicleID != "" && h.FromVehicleID != filter.VehicleID && h.ToVehicleID != filter.VehicleID {
+			continue
+		}
+		if filter.Stop != "" {
+			idMatch := h.StopID == filter.Stop
+			nameMatch := strings.Contains(strings.ToLower(h.StopName), stopQ)
+			if !idMatch && !nameMatch {
+				continue
+			}
+		}
+		if filter.From != nil && h.Timestamp.Before(*filter.From) {
+			continue
+		}
+		if filter.To != nil && !h.Timestamp.Before(*filter.To) {
 			continue
 		}
 		out = append(out, h)
 	}
-
-	limit := filter.Limit
-	if limit <= 0 {
-		limit = 100
-	}
-	if filter.Offset >= len(out) {
-		return []business.Headway{}, nil
-	}
-	endIdx := filter.Offset + limit
-	if endIdx > len(out) {
-		endIdx = len(out)
-	}
-	return out[filter.Offset:endIdx], nil
-}
-
-func (r *HeadwayRepo) CountInRange(_ context.Context, start, end time.Time, filter app.HeadwayListFilter) (int64, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	var count int64
-	for _, h := range r.Headways {
-		if h.Timestamp.Before(start) || !h.Timestamp.Before(end) {
-			continue
-		}
-		if filter.RouteID != "" && h.RouteID != filter.RouteID {
-			continue
-		}
-		if filter.Direction != "" && h.Direction != filter.Direction {
-			continue
-		}
-		if filter.StopID != "" && h.StopID != filter.StopID {
-			continue
-		}
-		count++
-	}
-	return count, nil
+	return out
 }
 
 // HeadwayJobRunRepo is an in-memory HeadwayJobRunRepository.
@@ -134,7 +139,6 @@ func (r *HeadwayJobRunRepo) List(_ context.Context, limit, offset int) ([]busine
 	if limit <= 0 {
 		limit = 50
 	}
-	// Newest first (append order is chronological).
 	n := len(r.Runs)
 	if offset >= n {
 		return []business.HeadwayJobRun{}, nil
