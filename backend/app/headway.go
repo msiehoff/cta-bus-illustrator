@@ -43,15 +43,20 @@ type HeadwaySummaryRepository interface {
 	DeleteForServiceDate(ctx context.Context, serviceDate time.Time) (int64, error)
 	InsertBatch(ctx context.Context, summaries []business.HeadwaySummary) error
 	List(ctx context.Context, filter HeadwaySummaryFilter) ([]business.HeadwaySummary, error)
+	Count(ctx context.Context, filter HeadwaySummaryFilter) (int64, error)
 }
 
 // HeadwaySummaryFilter scopes reads of persisted summaries.
+// ServiceDate is optional; zero means all dates.
 type HeadwaySummaryFilter struct {
-	ServiceDate time.Time // required (date at midnight UTC calendar)
-	Grain       string    // optional
-	Method      string    // optional
+	ServiceDate time.Time
+	Grain       string
+	Method      string
 	RouteID     string
 	Direction   string
 	StopID      string // exact stop id; empty = any
 	Stop        string // id or name substring (for stop-grain list UX)
+	SortAsc     bool
+	Limit       int
+	Offset      int
 }

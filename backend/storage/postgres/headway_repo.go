@@ -269,7 +269,18 @@ func (r *HeadwaySummaryRepo) InsertBatch(_ context.Context, summaries []business
 }
 
 func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFilter) ([]business.HeadwaySummary, error) {
-	day := time.Date(filter.ServiceDate.Year(), filter.ServiceDate.Month(), filter.ServiceDate.Day(), 0, 0, 0, 0, time.UTC)
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+
+	order := "headway_summaries.service_date DESC, headway_summaries.mean_minutes DESC"
+	if filter.SortAsc {
+		order = "headway_summaries.service_date ASC, headway_summaries.mean_minutes ASC"
+	}
 
 	type row struct {
 		ServiceDate      time.Time `gorm:"column:service_date"`
@@ -295,34 +306,11 @@ func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFi
 		Joins(`LEFT JOIN stops ON stops.stop_id = headway_summaries.stop_id
 			AND stops.route_id = headway_summaries.route_id
 			AND stops.direction = headway_summaries.direction`).
-		Joins(`LEFT JOIN routes ON routes.external_id = headway_summaries.route_id AND routes.deleted_at IS NULL`).
-		Where("headway_summaries.service_date = ?", day)
-
-	if filter.Grain != "" {
-		query = query.Where("headway_summaries.grain = ?", filter.Grain)
-	}
-	if filter.Method != "" {
-		query = query.Where("headway_summaries.method = ?", filter.Method)
-	}
-	if filter.RouteID != "" {
-		query = query.Where("headway_summaries.route_id = ?", filter.RouteID)
-	}
-	if filter.Direction != "" {
-		query = query.Where("headway_summaries.direction = ?", filter.Direction)
-	}
-	if filter.StopID != "" {
-		query = query.Where("headway_summaries.stop_id = ?", filter.StopID)
-	}
-	if filter.Stop != "" {
-		like := "%" + filter.Stop + "%"
-		query = query.Where(
-			"headway_summaries.stop_id = ? OR stops.name ILIKE ?",
-			filter.Stop, like,
-		)
-	}
+		Joins(`LEFT JOIN routes ON routes.external_id = headway_summaries.route_id AND routes.deleted_at IS NULL`)
+	query = applyHeadwaySummaryFilter(query, filter)
 
 	var rows []row
-	if err := query.Order("headway_summaries.mean_minutes DESC").Scan(&rows).Error; err != nil {
+	if err := query.Order(order).Limit(limit).Offset(filter.Offset).Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 
@@ -354,4 +342,45 @@ func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFi
 		}
 	}
 	return out, nil
+}
+
+func (r *HeadwaySummaryRepo) Count(_ context.Context, filter app.HeadwaySummaryFilter) (int64, error) {
+	var count int64
+	query := r.db.Table("headway_summaries").
+		Joins(`LEFT JOIN stops ON stops.stop_id = headway_summaries.stop_id
+			AND stops.route_id = headway_summaries.route_id
+			AND stops.direction = headway_summaries.direction`)
+	query = applyHeadwaySummaryFilter(query, filter)
+	err := query.Count(&count).Error
+	return count, err
+}
+
+func applyHeadwaySummaryFilter(query *gorm.DB, filter app.HeadwaySummaryFilter) *gorm.DB {
+	if !filter.ServiceDate.IsZero() {
+		day := time.Date(filter.ServiceDate.Year(), filter.ServiceDate.Month(), filter.ServiceDate.Day(), 0, 0, 0, 0, time.UTC)
+		query = query.Where("headway_summaries.service_date = ?", day)
+	}
+	if filter.Grain != "" {
+		query = query.Where("headway_summaries.grain = ?", filter.Grain)
+	}
+	if filter.Method != "" {
+		query = query.Where("headway_summaries.method = ?", filter.Method)
+	}
+	if filter.RouteID != "" {
+		query = query.Where("headway_summaries.route_id = ?", filter.RouteID)
+	}
+	if filter.Direction != "" {
+		query = query.Where("headway_summaries.direction = ?", filter.Direction)
+	}
+	if filter.StopID != "" {
+		query = query.Where("headway_summaries.stop_id = ?", filter.StopID)
+	}
+	if filter.Stop != "" {
+		like := "%" + filter.Stop + "%"
+		query = query.Where(
+			"headway_summaries.stop_id = ? OR stops.name ILIKE ?",
+			filter.Stop, like,
+		)
+	}
+	return query
 }

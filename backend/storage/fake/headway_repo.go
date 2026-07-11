@@ -208,13 +208,45 @@ func (r *HeadwaySummaryRepo) InsertBatch(_ context.Context, summaries []business
 }
 
 func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFilter) ([]business.HeadwaySummary, error) {
+	matched := r.filtered(filter)
+	sort.SliceStable(matched, func(i, j int) bool {
+		if matched[i].ServiceDate.Equal(matched[j].ServiceDate) {
+			if filter.SortAsc {
+				return matched[i].MeanMinutes < matched[j].MeanMinutes
+			}
+			return matched[i].MeanMinutes > matched[j].MeanMinutes
+		}
+		if filter.SortAsc {
+			return matched[i].ServiceDate.Before(matched[j].ServiceDate)
+		}
+		return matched[i].ServiceDate.After(matched[j].ServiceDate)
+	})
+
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if filter.Offset >= len(matched) {
+		return []business.HeadwaySummary{}, nil
+	}
+	end := filter.Offset + limit
+	if end > len(matched) {
+		end = len(matched)
+	}
+	return matched[filter.Offset:end], nil
+}
+
+func (r *HeadwaySummaryRepo) Count(_ context.Context, filter app.HeadwaySummaryFilter) (int64, error) {
+	return int64(len(r.filtered(filter))), nil
+}
+
+func (r *HeadwaySummaryRepo) filtered(filter app.HeadwaySummaryFilter) []business.HeadwaySummary {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	day := filter.ServiceDate.Format("2006-01-02")
 	out := make([]business.HeadwaySummary, 0)
 	for _, s := range r.Summaries {
-		if s.ServiceDate.Format("2006-01-02") != day {
+		if !filter.ServiceDate.IsZero() && s.ServiceDate.Format("2006-01-02") != filter.ServiceDate.Format("2006-01-02") {
 			continue
 		}
 		if filter.Grain != "" && s.Grain != filter.Grain {
@@ -240,5 +272,5 @@ func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFi
 		}
 		out = append(out, s)
 	}
-	return out, nil
+	return out
 }

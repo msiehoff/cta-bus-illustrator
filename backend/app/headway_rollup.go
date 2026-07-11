@@ -204,6 +204,7 @@ func (r *HeadwayRollup) LoadStoredSummary(ctx context.Context, filter HeadwaySum
 	stopFilter := filter
 	stopFilter.Grain = business.HeadwayGrainStop
 	stopFilter.Method = business.HeadwayMethodPooled
+	stopFilter.Limit = 50_000
 	stops, err := r.summaries.List(ctx, stopFilter)
 	if err != nil {
 		return business.HeadwaySummaryStats{}, business.HeadwaySummaryStats{}, nil, false, err
@@ -249,6 +250,7 @@ func resolveStoredOverall(
 			Grain:       business.HeadwayGrainRouteDirection,
 			RouteID:     filter.RouteID,
 			Direction:   filter.Direction,
+			Limit:       50,
 		})
 		if err == nil {
 			for _, row := range rows {
@@ -269,6 +271,7 @@ func resolveStoredOverall(
 		rows, err := repo.List(ctx, HeadwaySummaryFilter{
 			ServiceDate: filter.ServiceDate,
 			Grain:       business.HeadwayGrainServiceDay,
+			Limit:       50,
 		})
 		if err == nil {
 			for _, row := range rows {

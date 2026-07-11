@@ -45,6 +45,9 @@ const AdminLayout = () => {
           <NavLink to="/admin/headways" className={navLinkClass}>
             Headways
           </NavLink>
+          <NavLink to="/admin/headway-summaries" className={navLinkClass}>
+            Summaries
+          </NavLink>
           <NavLink to="/admin/headway-jobs" className={navLinkClass}>
             Headway Jobs
           </NavLink>

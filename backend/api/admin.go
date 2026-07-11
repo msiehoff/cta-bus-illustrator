@@ -28,6 +28,7 @@ func (a *API) registerAdminRoutes() {
 			protected.GET("/arrivals", a.handleAdminListArrivals)
 			protected.GET("/headways/summary", a.handleAdminHeadwaySummary)
 			protected.GET("/headways", a.handleAdminListHeadways)
+			protected.GET("/headway-summaries", a.handleAdminListHeadwaySummaries)
 		}
 	}
 
@@ -308,4 +309,87 @@ func toHeadwaySummaryResponse(
 		}
 	}
 	return resp
+}
+
+func (a *API) handleAdminListHeadwaySummaries(c *gin.Context) {
+	if a.headwaySummaryRepo == nil {
+		c.JSON(http.StatusOK, ListHeadwaySummariesResponse{
+			Summaries: []HeadwaySummaryRowResponse{},
+			Total:     0,
+			Limit:     50,
+			Offset:    0,
+		})
+		return
+	}
+
+	limit := parseIntQuery(c, "limit", 50, 200)
+	offset := parseIntQuery(c, "offset", 0, 1_000_000)
+	filter := app.HeadwaySummaryFilter{
+		Grain:     c.Query("grain"),
+		Method:    c.Query("method"),
+		RouteID:   c.Query("route"),
+		Direction: c.Query("direction"),
+		Stop:      c.Query("stop"),
+		SortAsc:   c.Query("sort") == "asc",
+		Limit:     limit,
+		Offset:    offset,
+	}
+
+	if date := c.Query("date"); date != "" {
+		serviceDate, err := app.ParseServiceDate(date)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		filter.ServiceDate = time.Date(serviceDate.Year(), serviceDate.Month(), serviceDate.Day(), 0, 0, 0, 0, time.UTC)
+	}
+
+	summaries, err := a.headwaySummaryRepo.List(c.Request.Context(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	total, err := a.headwaySummaryRepo.Count(c.Request.Context(), app.HeadwaySummaryFilter{
+		ServiceDate: filter.ServiceDate,
+		Grain:       filter.Grain,
+		Method:      filter.Method,
+		RouteID:     filter.RouteID,
+		Direction:   filter.Direction,
+		Stop:        filter.Stop,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp := ListHeadwaySummariesResponse{
+		Summaries: make([]HeadwaySummaryRowResponse, len(summaries)),
+		Total:     total,
+		Limit:     limit,
+		Offset:    offset,
+	}
+	for i, s := range summaries {
+		resp.Summaries[i] = toHeadwaySummaryRowResponse(s)
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func toHeadwaySummaryRowResponse(s business.HeadwaySummary) HeadwaySummaryRowResponse {
+	return HeadwaySummaryRowResponse{
+		ServiceDate:    s.ServiceDate.UTC().Format("2006-01-02"),
+		Grain:          s.Grain,
+		Method:         s.Method,
+		StopID:         s.StopID,
+		StopName:       s.StopName,
+		RouteID:        s.RouteID,
+		RouteName:      s.RouteName,
+		Direction:      s.Direction,
+		Count:          s.Count,
+		MeanMinutes:    round2(s.MeanMinutes),
+		MedianMinutes:  round2(s.MedianMinutes),
+		StdDevMinutes:  round2(s.StdDevMinutes),
+		CV:             round3(s.CV),
+		AvgWaitMinutes: round2(s.AvgWaitMinutes),
+	}
 }

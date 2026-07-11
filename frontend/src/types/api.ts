@@ -159,3 +159,27 @@ export interface HeadwaySummaryResponse {
   byStop: HeadwayStopSummary[]
   source?: 'stored' | 'computed' | string
 }
+
+export interface HeadwaySummaryRow {
+  serviceDate: string
+  grain: string
+  method: string
+  stopId?: string
+  stopName?: string
+  routeId?: string
+  routeName?: string
+  direction?: string
+  count: number
+  meanMinutes: number
+  medianMinutes: number
+  stdDevMinutes: number
+  cv: number
+  avgWaitMinutes: number
+}
+
+export interface ListHeadwaySummariesResponse {
+  summaries: HeadwaySummaryRow[]
+  total: number
+  limit: number
+  offset: number
+}

@@ -108,6 +108,30 @@ type HeadwaySummaryResponse struct {
 	Source string `json:"source"`
 }
 
+type HeadwaySummaryRowResponse struct {
+	ServiceDate    string  `json:"serviceDate"`
+	Grain          string  `json:"grain"`
+	Method         string  `json:"method"`
+	StopID         string  `json:"stopId,omitempty"`
+	StopName       string  `json:"stopName,omitempty"`
+	RouteID        string  `json:"routeId,omitempty"`
+	RouteName      string  `json:"routeName,omitempty"`
+	Direction      string  `json:"direction,omitempty"`
+	Count          int     `json:"count"`
+	MeanMinutes    float64 `json:"meanMinutes"`
+	MedianMinutes  float64 `json:"medianMinutes"`
+	StdDevMinutes  float64 `json:"stdDevMinutes"`
+	CV             float64 `json:"cv"`
+	AvgWaitMinutes float64 `json:"avgWaitMinutes"`
+}
+
+type ListHeadwaySummariesResponse struct {
+	Summaries []HeadwaySummaryRowResponse `json:"summaries"`
+	Total     int64                       `json:"total"`
+	Limit     int                         `json:"limit"`
+	Offset    int                         `json:"offset"`
+}
+
 func toSummaryStatsResponse(s business.HeadwaySummaryStats) HeadwaySummaryStatsResponse {
 	return HeadwaySummaryStatsResponse{
 		Count:          s.Count,
