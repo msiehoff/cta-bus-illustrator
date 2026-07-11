@@ -6,6 +6,11 @@ import "time"
 type VehiclePing struct {
 	VehicleID string
 	RouteID   string
+	// PatternID is the CTA pattern ID (pid) for the trip the vehicle is running.
+	// Used to resolve Direction via getpatterns.
+	PatternID int
+	// Direction is the route direction (e.g. "Northbound"). Prefer resolving from
+	// PatternID; may be empty on real CTA pings until patterns are loaded.
 	Direction string
 	Lat       float64
 	Lon       float64

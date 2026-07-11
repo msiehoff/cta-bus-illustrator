@@ -23,7 +23,7 @@ func TestVehicleClient_GetVehicles(t *testing.T) {
 					{
 						"vid": "1234", "tmstmp": "20240709 14:30:00",
 						"lat": "41.8781", "lon": "-87.6298",
-						"rt": "8", "stsd": "Northbound",
+						"rt": "8", "pid": 801, "stsd": "2024-07-09",
 					},
 				},
 			},
@@ -44,7 +44,7 @@ func TestVehicleClient_GetVehicles(t *testing.T) {
 	}
 
 	p := pings[0]
-	if p.VehicleID != "1234" || p.RouteID != "8" || p.Direction != "" {
+	if p.VehicleID != "1234" || p.RouteID != "8" || p.Direction != "" || p.PatternID != 801 {
 		t.Errorf("unexpected ping: %+v", p)
 	}
 	if p.Lat != 41.8781 || p.Lon != -87.6298 {
@@ -91,3 +91,36 @@ func TestVehicleClient_GetStops(t *testing.T) {
 		t.Errorf("stop mismatch:\n got: %+v\nwant: %+v", stops[0], want)
 	}
 }
+
+func TestVehicleClient_GetPatterns(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/getpatterns" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"bustime-response": map[string]interface{}{
+				"ptr": []map[string]interface{}{
+					{"pid": 100, "ln": 1000, "rtdir": "Eastbound", "pt": []any{}},
+					{"pid": 200, "ln": 1000, "rtdir": "WEST", "pt": []any{}},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key")
+	client.BaseURL = server.URL
+	vc := NewVehicleClient(client)
+
+	patterns, err := vc.GetPatterns(t.Context(), "66")
+	if err != nil {
+		t.Fatalf("GetPatterns: %v", err)
+	}
+	if patterns[100] != "Eastbound" {
+		t.Errorf("expected Eastbound for pid 100, got %q", patterns[100])
+	}
+	if patterns[200] != "Westbound" {
+		t.Errorf("expected Westbound for pid 200, got %q", patterns[200])
+	}
+}
+

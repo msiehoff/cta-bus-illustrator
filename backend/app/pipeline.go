@@ -14,6 +14,10 @@ type CTAVehicleClient interface {
 
 	// GetStops returns all stops for a given route and direction, ordered by sequence.
 	GetStops(ctx context.Context, routeID, direction string) ([]business.Stop, error)
+
+	// GetPatterns returns a map of pattern ID → normalized direction (e.g. "Eastbound")
+	// for all patterns on a route.
+	GetPatterns(ctx context.Context, routeID string) (map[int]string, error)
 }
 
 // ArrivalFilter controls paginated arrival queries for the admin UI.
