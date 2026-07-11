@@ -7,6 +7,7 @@ export interface ArrivalFilters {
   direction?: string
   stop?: string
   vehicle?: string
+  date?: string
   sort?: 'asc' | 'desc'
   limit?: number
   offset?: number
@@ -28,6 +29,7 @@ export const useArrivals = (filters: ArrivalFilters) => {
         if (filters.direction) params.set('direction', filters.direction)
         if (filters.stop) params.set('stop', filters.stop)
         if (filters.vehicle) params.set('vehicle', filters.vehicle)
+        if (filters.date) params.set('date', filters.date)
         if (filters.sort) params.set('sort', filters.sort)
         if (filters.limit != null) params.set('limit', String(filters.limit))
         if (filters.offset != null) params.set('offset', String(filters.offset))
@@ -59,6 +61,7 @@ export const useArrivals = (filters: ArrivalFilters) => {
     filters.direction,
     filters.stop,
     filters.vehicle,
+    filters.date,
     filters.sort,
     filters.limit,
     filters.offset,

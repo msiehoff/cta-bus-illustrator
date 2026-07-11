@@ -145,6 +145,12 @@ func ComputeObservedHeadways(arrivals []business.Arrival) []business.Headway {
 		// ListArrivalsInRange is ordered globally; within a group timestamps should already be ascending.
 		for i := 1; i < len(list); i++ {
 			prev, curr := list[i-1], list[i]
+			// Same vehicle twice is usually a re-detection, not a real bus gap.
+			// The day's first arrival has no predecessor; the last has no successor —
+			// both are naturally excluded because we only emit consecutive pairs.
+			if prev.VehicleID == curr.VehicleID {
+				continue
+			}
 			mins := curr.Timestamp.Sub(prev.Timestamp).Minutes()
 			if mins <= 0 {
 				continue

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import FilterValue from '../../components/admin/FilterValue'
 import { useHeadways } from '../../hooks/useHeadways'
+import { toChicagoServiceDate } from '../../lib/chicagoDate'
 
 const formatTime = (value: string) => new Date(value).toLocaleString()
 
@@ -10,7 +12,7 @@ const formatMinutes = (mins: number) => {
 }
 
 const filterInputClass =
-  'mt-1 block rounded-md bg-gray-950 border border-gray-800 px-3 py-2 text-white'
+  'mt-1 block rounded-md bg-gray-950 border border-gray-800 px-3 py-2 text-white [color-scheme:dark]'
 
 const AdminHeadways = () => {
   const [route, setRoute] = useState('')
@@ -38,6 +40,11 @@ const AdminHeadways = () => {
 
   const resetOffset = () => setOffset(0)
 
+  const setFilter = (setter: (v: string) => void) => (value: string) => {
+    setter(value)
+    resetOffset()
+  }
+
   const toggleTimeSort = () => {
     setSortAsc(prev => !prev)
     resetOffset()
@@ -48,7 +55,7 @@ const AdminHeadways = () => {
       <div>
         <h2 className="text-2xl font-semibold">Observed Headways</h2>
         <p className="text-sm text-gray-400 mt-1">
-          Gaps between consecutive arrivals at a stop. Run a job under Headway Jobs to compute.
+          Gaps between consecutive arrivals at a stop. Click a cell to filter. Re-run a job to refresh after code changes.
         </p>
       </div>
 
@@ -149,27 +156,69 @@ const AdminHeadways = () => {
                   </td>
                 </tr>
               ) : data?.headways.length ? (
-                data.headways.map(h => (
-                  <tr
-                    key={`${h.stopId}-${h.routeId}-${h.direction}-${h.timestamp}-${h.toVehicleId}`}
-                    className="border-t border-gray-800"
-                  >
-                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
-                      {formatTime(h.timestamp)}
-                    </td>
-                    <td className="px-4 py-3 text-white font-medium tabular-nums">
-                      {formatMinutes(h.headwayMinutes)}
-                    </td>
-                    <td className="px-4 py-3 text-white">{h.routeId}</td>
-                    <td className="px-4 py-3 text-gray-300">{h.direction}</td>
-                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
-                      {h.fromVehicleId || '—'} → {h.toVehicleId || '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-300">
-                      {h.stopName || h.stopId}
-                    </td>
-                  </tr>
-                ))
+                data.headways.map(h => {
+                  const serviceDate = toChicagoServiceDate(h.timestamp)
+                  const stopLabel = h.stopName || h.stopId
+                  return (
+                    <tr
+                      key={`${h.stopId}-${h.routeId}-${h.direction}-${h.timestamp}-${h.toVehicleId}`}
+                      className="border-t border-gray-800"
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <FilterValue
+                          value={serviceDate}
+                          active={date === serviceDate}
+                          onSelect={setFilter(setDate)}
+                          className="text-gray-300"
+                        >
+                          {formatTime(h.timestamp)}
+                        </FilterValue>
+                      </td>
+                      <td className="px-4 py-3 text-white font-medium tabular-nums">
+                        {formatMinutes(h.headwayMinutes)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <FilterValue
+                          value={h.routeId}
+                          active={route === h.routeId}
+                          onSelect={setFilter(setRoute)}
+                          className="text-white"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <FilterValue
+                          value={h.direction}
+                          active={direction === h.direction}
+                          onSelect={setFilter(setDirection)}
+                          className="text-gray-300"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
+                        <FilterValue
+                          value={h.fromVehicleId ?? ''}
+                          active={vehicle === h.fromVehicleId}
+                          onSelect={setFilter(setVehicle)}
+                          className="text-gray-300"
+                        />
+                        <span className="mx-1 text-gray-600">→</span>
+                        <FilterValue
+                          value={h.toVehicleId ?? ''}
+                          active={vehicle === h.toVehicleId}
+                          onSelect={setFilter(setVehicle)}
+                          className="text-gray-300"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <FilterValue
+                          value={stopLabel}
+                          active={stop === stopLabel || stop === h.stopId}
+                          onSelect={setFilter(setStop)}
+                          className="text-gray-300"
+                        />
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-gray-500">

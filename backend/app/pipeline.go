@@ -29,6 +29,8 @@ type ArrivalFilter struct {
 	Stop string
 	// VehicleID filters by vehicle_id (exact match).
 	VehicleID string
+	From      *time.Time
+	To        *time.Time
 	// SortAsc sorts by timestamp ascending when true; default is newest first.
 	SortAsc bool
 	Limit   int

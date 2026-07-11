@@ -32,6 +32,27 @@ func TestComputeObservedHeadways(t *testing.T) {
 	}
 }
 
+func TestComputeObservedHeadwaysSkipsSameVehicle(t *testing.T) {
+	base := time.Date(2026, 7, 10, 8, 0, 0, 0, time.UTC)
+	arrivals := []business.Arrival{
+		{StopID: "s1", RouteID: "66", Direction: "Westbound", VehicleID: "1123", Timestamp: base},
+		{StopID: "s1", RouteID: "66", Direction: "Westbound", VehicleID: "1123", Timestamp: base.Add(6 * time.Second)},
+		{StopID: "s1", RouteID: "66", Direction: "Westbound", VehicleID: "8690", Timestamp: base.Add(7 * time.Minute)},
+		{StopID: "s1", RouteID: "66", Direction: "Westbound", VehicleID: "1351", Timestamp: base.Add(36 * time.Minute)},
+	}
+
+	got := app.ComputeObservedHeadways(arrivals)
+	if len(got) != 2 {
+		t.Fatalf("expected 2 headways (same-vehicle gap skipped), got %d", len(got))
+	}
+	if got[0].FromVehicleID != "1123" || got[0].ToVehicleID != "8690" {
+		t.Errorf("first gap vehicles: %+v", got[0])
+	}
+	if got[1].FromVehicleID != "8690" || got[1].ToVehicleID != "1351" {
+		t.Errorf("second gap vehicles: %+v", got[1])
+	}
+}
+
 func TestServiceDateBounds(t *testing.T) {
 	d, err := app.ParseServiceDate("2026-07-10")
 	if err != nil {

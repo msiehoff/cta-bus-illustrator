@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import FilterValue from '../../components/admin/FilterValue'
 import { useArrivals } from '../../hooks/useArrivals'
+import { toChicagoServiceDate } from '../../lib/chicagoDate'
 
 const formatTime = (value: string) => new Date(value).toLocaleString()
 
 const filterInputClass =
-  'mt-1 block rounded-md bg-gray-950 border border-gray-800 px-3 py-2 text-white'
+  'mt-1 block rounded-md bg-gray-950 border border-gray-800 px-3 py-2 text-white [color-scheme:dark]'
 
 const AdminArrivals = () => {
+  const [date, setDate] = useState('')
   const [route, setRoute] = useState('')
   const [direction, setDirection] = useState('')
   const [stop, setStop] = useState('')
@@ -17,6 +20,7 @@ const AdminArrivals = () => {
   const limit = 50
 
   const { data, loading, error } = useArrivals({
+    date,
     route,
     direction,
     stop,
@@ -31,6 +35,11 @@ const AdminArrivals = () => {
 
   const resetOffset = () => setOffset(0)
 
+  const setFilter = (setter: (v: string) => void) => (value: string) => {
+    setter(value)
+    resetOffset()
+  }
+
   const toggleTimeSort = () => {
     setSortAsc(prev => !prev)
     resetOffset()
@@ -41,11 +50,23 @@ const AdminArrivals = () => {
       <div>
         <h2 className="text-2xl font-semibold">Recent Arrivals</h2>
         <p className="text-sm text-gray-400 mt-1">
-          Detected stop arrivals from the pipeline. Refreshes every 10 seconds.
+          Detected stop arrivals from the pipeline. Click a cell to filter. Refreshes every 10 seconds.
         </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <label className="text-sm text-gray-400">
+          Service date
+          <input
+            type="date"
+            value={date}
+            onChange={e => {
+              setDate(e.target.value)
+              resetOffset()
+            }}
+            className={twMerge(filterInputClass, 'w-40')}
+          />
+        </label>
         <label className="text-sm text-gray-400">
           Route
           <input
@@ -129,22 +150,59 @@ const AdminArrivals = () => {
                   </td>
                 </tr>
               ) : data?.arrivals.length ? (
-                data.arrivals.map(arrival => (
-                  <tr
-                    key={`${arrival.vehicleId}-${arrival.timestamp}-${arrival.stopId}`}
-                    className="border-t border-gray-800"
-                  >
-                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
-                      {formatTime(arrival.timestamp)}
-                    </td>
-                    <td className="px-4 py-3 text-white">{arrival.routeId}</td>
-                    <td className="px-4 py-3 text-gray-300">{arrival.direction}</td>
-                    <td className="px-4 py-3 text-gray-300">{arrival.vehicleId}</td>
-                    <td className="px-4 py-3 text-gray-300">
-                      {arrival.stopName || arrival.stopId}
-                    </td>
-                  </tr>
-                ))
+                data.arrivals.map(arrival => {
+                  const serviceDate = toChicagoServiceDate(arrival.timestamp)
+                  const stopLabel = arrival.stopName || arrival.stopId
+                  return (
+                    <tr
+                      key={`${arrival.vehicleId}-${arrival.timestamp}-${arrival.stopId}`}
+                      className="border-t border-gray-800"
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <FilterValue
+                          value={serviceDate}
+                          active={date === serviceDate}
+                          onSelect={setFilter(setDate)}
+                          className="text-gray-300"
+                        >
+                          {formatTime(arrival.timestamp)}
+                        </FilterValue>
+                      </td>
+                      <td className="px-4 py-3">
+                        <FilterValue
+                          value={arrival.routeId}
+                          active={route === arrival.routeId}
+                          onSelect={setFilter(setRoute)}
+                          className="text-white"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <FilterValue
+                          value={arrival.direction}
+                          active={direction === arrival.direction}
+                          onSelect={setFilter(setDirection)}
+                          className="text-gray-300"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <FilterValue
+                          value={arrival.vehicleId}
+                          active={vehicle === arrival.vehicleId}
+                          onSelect={setFilter(setVehicle)}
+                          className="text-gray-300"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <FilterValue
+                          value={stopLabel}
+                          active={stop === stopLabel || stop === arrival.stopId}
+                          onSelect={setFilter(setStop)}
+                          className="text-gray-300"
+                        />
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-gray-500">

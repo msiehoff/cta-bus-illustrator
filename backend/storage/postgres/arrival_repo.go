@@ -128,5 +128,11 @@ func (r *ArrivalRepo) applyArrivalFilter(query *gorm.DB, filter app.ArrivalFilte
 			filter.Stop, like,
 		)
 	}
+	if filter.From != nil {
+		query = query.Where("arrivals.timestamp >= ?", *filter.From)
+	}
+	if filter.To != nil {
+		query = query.Where("arrivals.timestamp < ?", *filter.To)
+	}
 	return query
 }

@@ -104,6 +104,17 @@ func (a *API) handleAdminListArrivals(c *gin.Context) {
 		Offset:    offset,
 	}
 
+	if date := c.Query("date"); date != "" {
+		serviceDate, err := app.ParseServiceDate(date)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		start, end := app.ServiceDateBounds(serviceDate)
+		filter.From = &start
+		filter.To = &end
+	}
+
 	arrivals, err := a.arrivalRepo.ListArrivals(c.Request.Context(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -115,6 +126,8 @@ func (a *API) handleAdminListArrivals(c *gin.Context) {
 		Direction: filter.Direction,
 		Stop:      filter.Stop,
 		VehicleID: filter.VehicleID,
+		From:      filter.From,
+		To:        filter.To,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

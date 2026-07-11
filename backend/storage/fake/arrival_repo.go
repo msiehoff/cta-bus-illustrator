@@ -107,6 +107,12 @@ func (r *ArrivalRepo) filteredArrivals(filter app.ArrivalFilter) []business.Arri
 				continue
 			}
 		}
+		if filter.From != nil && arrival.Timestamp.Before(*filter.From) {
+			continue
+		}
+		if filter.To != nil && !arrival.Timestamp.Before(*filter.To) {
+			continue
+		}
 		matches = append(matches, arrival)
 	}
 
