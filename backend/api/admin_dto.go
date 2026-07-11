@@ -27,6 +27,7 @@ type PipelineStatusResponse struct {
 
 type ArrivalResponse struct {
 	StopID    string `json:"stopId"`
+	StopName  string `json:"stopName,omitempty"`
 	RouteID   string `json:"routeId"`
 	Direction string `json:"direction"`
 	VehicleID string `json:"vehicleId"`
@@ -65,6 +66,7 @@ func toPipelineStatusResponse(status app.PipelineStatus, enabled bool, arrivalCo
 func toArrivalResponse(arrival business.Arrival) ArrivalResponse {
 	return ArrivalResponse{
 		StopID:    arrival.StopID,
+		StopName:  arrival.StopName,
 		RouteID:   arrival.RouteID,
 		Direction: arrival.Direction,
 		VehicleID: arrival.VehicleID,

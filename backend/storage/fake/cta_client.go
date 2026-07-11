@@ -48,33 +48,46 @@ func (c *CTAClient) GetStops(_ context.Context, routeID, direction string) ([]bu
 	return []business.Stop{}, nil
 }
 
+// GetPatterns returns pattern ID → direction for supported fake routes.
+func (c *CTAClient) GetPatterns(_ context.Context, routeID string) (map[int]string, error) {
+	switch routeID {
+	case "8":
+		return map[int]string{801: "Northbound", 802: "Southbound"}, nil
+	case "66":
+		return map[int]string{661: "Eastbound", 662: "Westbound"}, nil
+	default:
+		return map[int]string{}, nil
+	}
+}
+
 // allVehicles builds simulated pings. The tick offset nudges vehicles along their routes.
+// Direction is left empty — resolution uses PatternID via GetPatterns, matching real CTA.
 func (c *CTAClient) allVehicles(now time.Time) []business.VehiclePing {
 	offset := float64(c.tick) * 0.0003 // ~33m northward per tick
 
 	return []business.VehiclePing{
 		// Route 8 Halsted — Northbound
-		{VehicleID: "8001", RouteID: "8", Direction: "Northbound",
+		{VehicleID: "8001", RouteID: "8", PatternID: 801,
 			Lat: 41.8480 + offset, Lon: -87.6441, Timestamp: now},
-		{VehicleID: "8002", RouteID: "8", Direction: "Northbound",
+		{VehicleID: "8002", RouteID: "8", PatternID: 801,
 			Lat: 41.8780 + offset, Lon: -87.6441, Timestamp: now},
-		{VehicleID: "8003", RouteID: "8", Direction: "Northbound",
+		{VehicleID: "8003", RouteID: "8", PatternID: 801,
 			Lat: 41.9050 + offset, Lon: -87.6441, Timestamp: now},
 
 		// Route 8 Halsted — Southbound
-		{VehicleID: "8004", RouteID: "8", Direction: "Southbound",
+		{VehicleID: "8004", RouteID: "8", PatternID: 802,
 			Lat: 41.9600 - offset, Lon: -87.6441, Timestamp: now},
-		{VehicleID: "8005", RouteID: "8", Direction: "Southbound",
+		{VehicleID: "8005", RouteID: "8", PatternID: 802,
 			Lat: 41.9200 - offset, Lon: -87.6441, Timestamp: now},
 
 		// Route 66 Chicago — Eastbound
-		{VehicleID: "6601", RouteID: "66", Direction: "Eastbound",
+		{VehicleID: "6601", RouteID: "66", PatternID: 661,
 			Lat: 41.8957, Lon: -87.7600 + offset, Timestamp: now},
-		{VehicleID: "6602", RouteID: "66", Direction: "Eastbound",
+		{VehicleID: "6602", RouteID: "66", PatternID: 661,
 			Lat: 41.8957, Lon: -87.7100 + offset, Timestamp: now},
 
 		// Route 66 Chicago — Westbound
-		{VehicleID: "6603", RouteID: "66", Direction: "Westbound",
+		{VehicleID: "6603", RouteID: "66", PatternID: 662,
 			Lat: 41.8957, Lon: -87.6200 - offset, Timestamp: now},
 	}
 }

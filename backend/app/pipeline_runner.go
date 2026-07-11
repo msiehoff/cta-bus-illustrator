@@ -57,11 +57,15 @@ func (r *PipelineRunner) Status() PipelineStatus {
 }
 
 // Run starts the pipeline and blocks until ctx is cancelled.
-// Stop loading runs once at startup; vehicle polling then loops on PollInterval.
+// Patterns and stops load once at startup; vehicle polling then loops on PollInterval.
 func (r *PipelineRunner) Run(ctx context.Context) error {
 	log.Printf("pipeline: starting — routes=%v poll_interval=%v", r.cfg.RouteIDs, r.cfg.PollInterval)
 	r.status.setRunning(true)
 	defer r.status.setRunning(false)
+
+	if err := r.loadPatterns(ctx); err != nil {
+		log.Printf("pipeline: pattern loading incomplete: %v", err)
+	}
 
 	if err := r.loadAllStops(ctx); err != nil {
 		// Non-fatal: log and continue. Pings for routes with missing stops are skipped.
@@ -101,12 +105,45 @@ func (r *PipelineRunner) poll(ctx context.Context) {
 		}
 		log.Printf("pipeline: received %d pings for routes %v", len(pings), batch)
 		totalPings += len(pings)
+		if DebugEnabled() && len(pings) > 0 {
+			sample := pings
+			if len(sample) > 3 {
+				sample = sample[:3]
+			}
+			for _, ping := range sample {
+				Debugf("pipeline: sample ping vehicle=%s route=%s pid=%d dir=%q lat=%.5f lon=%.5f ts=%s",
+					ping.VehicleID, ping.RouteID, ping.PatternID, ping.Direction, ping.Lat, ping.Lon,
+					ping.Timestamp.Format("15:04:05"))
+			}
+		}
 		for _, ping := range pings {
 			r.detector.ProcessPing(ctx, ping)
 		}
 	}
 
 	r.status.recordPoll(totalPings, pollErr)
+}
+
+// loadPatterns fetches pattern ID → direction maps for every configured route.
+func (r *PipelineRunner) loadPatterns(ctx context.Context) error {
+	total := 0
+	for _, routeID := range r.cfg.RouteIDs {
+		patterns, err := r.client.GetPatterns(ctx, routeID)
+		if err != nil {
+			log.Printf("pipeline: getpatterns route=%s: %v", routeID, err)
+			continue
+		}
+		r.detector.LoadPatterns(patterns)
+		total += len(patterns)
+		log.Printf("pipeline: loaded %d patterns route=%s", len(patterns), routeID)
+		for pid, dir := range patterns {
+			Debugf("pipeline: pattern pid=%d route=%s dir=%s", pid, routeID, dir)
+		}
+	}
+	if total == 0 {
+		log.Printf("pipeline: warning — no patterns loaded; arrivals require pattern→direction resolution")
+	}
+	return nil
 }
 
 // loadAllStops fetches and caches stops for every configured route+direction combination.

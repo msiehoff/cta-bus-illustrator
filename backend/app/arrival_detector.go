@@ -25,24 +25,35 @@ const (
 // order-sensitive. Do not call ProcessPing concurrently.
 type ArrivalDetector struct {
 	vehicleStates map[string]*business.VehicleState // keyed by VehicleID
-	stops         map[string][]business.Stop        // keyed by "routeID:direction"
-	repo          ArrivalRepository
+	// stopsByRouteDir is keyed by "routeID:direction".
+	stopsByRouteDir map[string][]business.Stop
+	// patternDir maps CTA pattern ID → normalized direction (e.g. "Eastbound").
+	patternDir map[int]string
+	repo       ArrivalRepository
 }
 
 // NewArrivalDetector creates a detector backed by the given repository.
 // Stops must be pre-loaded via LoadStops before processing pings.
 func NewArrivalDetector(repo ArrivalRepository) *ArrivalDetector {
 	return &ArrivalDetector{
-		vehicleStates: make(map[string]*business.VehicleState),
-		stops:         make(map[string][]business.Stop),
-		repo:          repo,
+		vehicleStates:   make(map[string]*business.VehicleState),
+		stopsByRouteDir: make(map[string][]business.Stop),
+		patternDir:      make(map[int]string),
+		repo:            repo,
 	}
 }
 
 // LoadStops caches the stops for a route+direction so the detector can do
 // proximity checks without hitting the CTA API on every ping.
 func (d *ArrivalDetector) LoadStops(routeID, direction string, stops []business.Stop) {
-	d.stops[routeKey(routeID, direction)] = stops
+	d.stopsByRouteDir[routeKey(routeID, direction)] = stops
+}
+
+// LoadPatterns caches pattern ID → direction mappings used to resolve vehicle direction.
+func (d *ArrivalDetector) LoadPatterns(patterns map[int]string) {
+	for pid, dir := range patterns {
+		d.patternDir[pid] = dir
+	}
 }
 
 // ProcessPing evaluates a single vehicle ping and saves an Arrival if the vehicle
@@ -52,11 +63,21 @@ func (d *ArrivalDetector) ProcessPing(ctx context.Context, ping business.Vehicle
 	if !ok {
 		state = &business.VehicleState{}
 		d.vehicleStates[ping.VehicleID] = state
+		Debugf("arrival_detector: tracking new vehicle=%s route=%s pid=%d dir=%q",
+			ping.VehicleID, ping.RouteID, ping.PatternID, ping.Direction)
 	}
 
-	stops, ok := d.stops[routeKey(ping.RouteID, ping.Direction)]
-	if !ok {
-		// Stops not yet loaded for this route/direction — skip silently.
+	direction := d.resolveDirection(ping)
+	if direction == "" {
+		Debugf("arrival_detector: skip vehicle=%s route=%s pid=%d — cannot resolve direction",
+			ping.VehicleID, ping.RouteID, ping.PatternID)
+		return
+	}
+
+	stops, ok := d.stopsByRouteDir[routeKey(ping.RouteID, direction)]
+	if !ok || len(stops) == 0 {
+		Debugf("arrival_detector: skip vehicle=%s route=%s dir=%s — no stops loaded",
+			ping.VehicleID, ping.RouteID, direction)
 		return
 	}
 
@@ -66,13 +87,18 @@ func (d *ArrivalDetector) ProcessPing(ctx context.Context, ping business.Vehicle
 	}
 
 	if dist > ArrivalRadiusMeters {
-		// Not close enough to any stop.
+		if dist < 200 {
+			Debugf("arrival_detector: skip vehicle=%s route=%s dir=%s nearest=%s(%s) dist=%.1fm > radius=%.0fm (near miss)",
+				ping.VehicleID, ping.RouteID, direction, nearest.StopID, nearest.Name, dist, ArrivalRadiusMeters)
+		}
 		return
 	}
 
 	if nearest.StopID == state.LastStopID && !state.LastArrivalTime.IsZero() {
-		// Already recorded this stop for this vehicle; check cooldown using ping time.
-		if ping.Timestamp.Sub(state.LastArrivalTime).Minutes() < ArrivalCooldownMinutes {
+		elapsedMin := ping.Timestamp.Sub(state.LastArrivalTime).Minutes()
+		if elapsedMin < ArrivalCooldownMinutes {
+			Debugf("arrival_detector: skip vehicle=%s stop=%s — cooldown (%.1fmin < %.0fmin)",
+				ping.VehicleID, nearest.StopID, elapsedMin, ArrivalCooldownMinutes)
 			return
 		}
 	}
@@ -80,7 +106,7 @@ func (d *ArrivalDetector) ProcessPing(ctx context.Context, ping business.Vehicle
 	arrival := business.Arrival{
 		StopID:    nearest.StopID,
 		RouteID:   ping.RouteID,
-		Direction: ping.Direction,
+		Direction: direction,
 		VehicleID: ping.VehicleID,
 		Timestamp: ping.Timestamp,
 	}
@@ -91,8 +117,8 @@ func (d *ArrivalDetector) ProcessPing(ctx context.Context, ping business.Vehicle
 		return
 	}
 
-	log.Printf("arrival_detector: arrival recorded vehicle=%s route=%s dir=%s stop=%s(%s) dist=%.1fm",
-		ping.VehicleID, ping.RouteID, ping.Direction, nearest.StopID, nearest.Name, dist)
+	log.Printf("arrival_detector: arrival recorded vehicle=%s route=%s dir=%s stop=%s(%s) dist=%.1fm pid=%d",
+		ping.VehicleID, ping.RouteID, direction, nearest.StopID, nearest.Name, dist, ping.PatternID)
 
 	state.LastStopID = nearest.StopID
 	state.LastArrivalTime = ping.Timestamp
@@ -101,7 +127,20 @@ func (d *ArrivalDetector) ProcessPing(ctx context.Context, ping business.Vehicle
 	state.LastTimestamp = ping.Timestamp
 }
 
-// nearestStop returns the closest stop to (lat, lon) and the distance to it in metres.
+// resolveDirection prefers an explicit ping direction, then pattern ID lookup.
+func (d *ArrivalDetector) resolveDirection(ping business.VehiclePing) string {
+	if ping.Direction != "" {
+		return business.NormalizeDirection(ping.Direction)
+	}
+	if ping.PatternID != 0 {
+		if dir, ok := d.patternDir[ping.PatternID]; ok {
+			return dir
+		}
+		Debugf("arrival_detector: unknown pattern pid=%d route=%s", ping.PatternID, ping.RouteID)
+	}
+	return ""
+}
+
 func nearestStop(stops []business.Stop, lat, lon float64) (*business.Stop, float64) {
 	var nearest *business.Stop
 	minDist := math.MaxFloat64
@@ -116,7 +155,6 @@ func nearestStop(stops []business.Stop, lat, lon float64) (*business.Stop, float
 	return nearest, minDist
 }
 
-// haversineMeters returns the great-circle distance between two lat/lon points in metres.
 func haversineMeters(lat1, lon1, lat2, lon2 float64) float64 {
 	const earthRadius = 6_371_000.0
 	dLat := toRad(lat2 - lat1)

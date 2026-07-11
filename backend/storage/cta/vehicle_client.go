@@ -87,17 +87,36 @@ func (v *VehicleClient) toVehiclePing(vehicle Vehicle) (business.VehiclePing, er
 		ts = time.Now()
 	}
 
-	direction := strings.TrimSpace(vehicle.Stsd)
-	if direction == "" {
-		direction = strings.TrimSpace(vehicle.Des)
-	}
-
+	// Direction is resolved later from PatternID via getpatterns (pid → rtdir).
 	return business.VehiclePing{
 		VehicleID: vehicle.Vid,
 		RouteID:   vehicle.Rt,
-		Direction: direction,
+		PatternID: vehicle.Pid,
+		Direction: "",
 		Lat:       lat,
 		Lon:       lon,
 		Timestamp: ts,
 	}, nil
+}
+
+func (v *VehicleClient) GetPatterns(ctx context.Context, routeID string) (map[int]string, error) {
+	_ = ctx
+
+	resp, err := v.client.GetRoutePattern(routeID)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[int]string, len(resp.BustimeResponse.Ptr))
+	for _, ptr := range resp.BustimeResponse.Ptr {
+		if ptr.Pid == 0 {
+			continue
+		}
+		dir := business.NormalizeDirection(ptr.Rtdir)
+		if dir == "" {
+			continue
+		}
+		out[ptr.Pid] = dir
+	}
+	return out, nil
 }
