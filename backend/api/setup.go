@@ -6,30 +6,42 @@ import (
 )
 
 type API struct {
-	router         *gin.Engine
-	routeService   *app.RouteService
-	ctaDataSrc     app.RouteSegmentDataSource
-	pipelineRunner *app.PipelineRunner
-	arrivalRepo    app.ArrivalRepository
-	adminAuth      *AdminAuth
+	router             *gin.Engine
+	routeService       *app.RouteService
+	ctaDataSrc         app.RouteSegmentDataSource
+	pipelineRunner     *app.PipelineRunner
+	arrivalRepo        app.ArrivalRepository
+	headwayRepo        app.HeadwayRepository
+	headwaySummaryRepo app.HeadwaySummaryRepository
+	headwayRollup      *app.HeadwayRollup
+	adminAuth          *AdminAuth
+	jobTokenAuth       *JobTokenAuth
 }
 
 type Options struct {
-	RouteService   *app.RouteService
-	CtaDataSrc     app.RouteSegmentDataSource
-	PipelineRunner *app.PipelineRunner
-	ArrivalRepo    app.ArrivalRepository
-	AdminAuth      *AdminAuth
+	RouteService       *app.RouteService
+	CtaDataSrc         app.RouteSegmentDataSource
+	PipelineRunner     *app.PipelineRunner
+	ArrivalRepo        app.ArrivalRepository
+	HeadwayRepo        app.HeadwayRepository
+	HeadwaySummaryRepo app.HeadwaySummaryRepository
+	HeadwayRollup      *app.HeadwayRollup
+	AdminAuth          *AdminAuth
+	JobTokenAuth       *JobTokenAuth
 }
 
 func New(opts Options) *API {
 	a := &API{
-		router:         gin.Default(),
-		routeService:   opts.RouteService,
-		ctaDataSrc:     opts.CtaDataSrc,
-		pipelineRunner: opts.PipelineRunner,
-		arrivalRepo:    opts.ArrivalRepo,
-		adminAuth:      opts.AdminAuth,
+		router:             gin.Default(),
+		routeService:       opts.RouteService,
+		ctaDataSrc:         opts.CtaDataSrc,
+		pipelineRunner:     opts.PipelineRunner,
+		arrivalRepo:        opts.ArrivalRepo,
+		headwayRepo:        opts.HeadwayRepo,
+		headwaySummaryRepo: opts.HeadwaySummaryRepo,
+		headwayRollup:      opts.HeadwayRollup,
+		adminAuth:          opts.AdminAuth,
+		jobTokenAuth:       opts.JobTokenAuth,
 	}
 	a.registerRoutes()
 	a.registerAdminRoutes()

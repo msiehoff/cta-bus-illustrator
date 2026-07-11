@@ -85,6 +85,7 @@ export interface ArrivalRecord {
   stopId: string
   stopName?: string
   routeId: string
+  routeName?: string
   direction: string
   vehicleId: string
   timestamp: string
@@ -92,6 +93,92 @@ export interface ArrivalRecord {
 
 export interface ListArrivalsResponse {
   arrivals: ArrivalRecord[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface HeadwayJobRun {
+  id: number
+  serviceDate: string
+  status: string
+  triggeredBy: string
+  startedAt: string
+  finishedAt?: string
+  arrivalsProcessed: number
+  headwaysWritten: number
+  summariesWritten?: number
+  errorMessage?: string
+}
+
+export interface ListHeadwayJobRunsResponse {
+  runs: HeadwayJobRun[]
+  limit: number
+  offset: number
+}
+
+export interface HeadwayRecord {
+  stopId: string
+  stopName?: string
+  routeId: string
+  routeName?: string
+  direction: string
+  timestamp: string
+  headwayMinutes: number
+  fromVehicleId?: string
+  toVehicleId?: string
+}
+
+export interface ListHeadwaysResponse {
+  headways: HeadwayRecord[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface HeadwaySummaryStats {
+  count: number
+  meanMinutes: number
+  medianMinutes: number
+  stdDevMinutes: number
+  cv: number
+  avgWaitMinutes: number
+}
+
+export interface HeadwayStopSummary extends HeadwaySummaryStats {
+  stopId: string
+  stopName?: string
+  routeId: string
+  routeName?: string
+  direction: string
+}
+
+export interface HeadwaySummaryResponse {
+  pooled: HeadwaySummaryStats
+  equalStopWeight: HeadwaySummaryStats
+  byStop: HeadwayStopSummary[]
+  source?: 'stored' | 'computed' | string
+}
+
+export interface HeadwaySummaryRow {
+  serviceDate: string
+  grain: string
+  method: string
+  stopId?: string
+  stopName?: string
+  routeId?: string
+  routeName?: string
+  direction?: string
+  count: number
+  meanMinutes: number
+  medianMinutes: number
+  stdDevMinutes: number
+  cv: number
+  avgWaitMinutes: number
+}
+
+export interface ListHeadwaySummariesResponse {
+  summaries: HeadwaySummaryRow[]
   total: number
   limit: number
   offset: number

@@ -81,13 +81,36 @@ func main() {
 		log.Println("admin UI disabled — set ADMIN_USERNAME and ADMIN_PASSWORD to enable")
 	}
 
+	jobTokenAuth, jobTokenEnabled := api.JobTokenAuthFromEnv()
+	if jobTokenEnabled {
+		log.Println("headway job token auth enabled")
+	}
+
+	var headwayRepo app.HeadwayRepository
+	var headwayJobRunRepo app.HeadwayJobRunRepository
+	var headwaySummaryRepo app.HeadwaySummaryRepository
+	if db != nil {
+		headwayRepo = pgstore.NewHeadwayRepo(db)
+		headwayJobRunRepo = pgstore.NewHeadwayJobRunRepo(db)
+		headwaySummaryRepo = pgstore.NewHeadwaySummaryRepo(db)
+	} else {
+		headwayRepo = &fake.HeadwayRepo{}
+		headwayJobRunRepo = &fake.HeadwayJobRunRepo{}
+		headwaySummaryRepo = &fake.HeadwaySummaryRepo{}
+	}
+	headwayRollup := app.NewHeadwayRollup(arrivalRepo, headwayRepo, headwaySummaryRepo, headwayJobRunRepo)
+
 	routeService := app.NewRouteService(routeRepo, ridershipRepo)
 	a := api.New(api.Options{
 		RouteService:   routeService,
 		CtaDataSrc:     ctaDataSrc,
 		PipelineRunner: pipelineRunner,
 		ArrivalRepo:    arrivalRepo,
+		HeadwayRepo:        headwayRepo,
+		HeadwaySummaryRepo: headwaySummaryRepo,
+		HeadwayRollup:      headwayRollup,
 		AdminAuth:      adminAuth,
+		JobTokenAuth:   jobTokenAuth,
 	})
 	if err := a.Run(":8080"); err != nil {
 		log.Fatalf("server error: %v", err)

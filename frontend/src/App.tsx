@@ -10,6 +10,9 @@ import CorridorRoutePage from './pages/CorridorRoutePage'
 import AdminLogin from './pages/admin/AdminLogin'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminArrivals from './pages/admin/AdminArrivals'
+import AdminHeadways from './pages/admin/AdminHeadways'
+import AdminHeadwaySummaries from './pages/admin/AdminHeadwaySummaries'
+import AdminHeadwayJobs from './pages/admin/AdminHeadwayJobs'
 import AdminLayout from './components/admin/AdminLayout'
 import ProtectedRoute from './components/admin/ProtectedRoute'
 import { trackPageView } from './lib/analytics'
@@ -86,6 +89,9 @@ const App = () => (
         <Route element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="arrivals" element={<AdminArrivals />} />
+          <Route path="headways" element={<AdminHeadways />} />
+          <Route path="headway-summaries" element={<AdminHeadwaySummaries />} />
+          <Route path="headway-jobs" element={<AdminHeadwayJobs />} />
         </Route>
       </Route>
       <Route path="/*" element={<AppShell />} />

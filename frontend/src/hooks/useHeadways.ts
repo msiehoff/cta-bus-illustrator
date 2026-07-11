@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import type { ListArrivalsResponse } from '../types/api'
+import type { ListHeadwaysResponse } from '../types/api'
 import { adminFetch, ADMIN_API_BASE } from '../lib/adminApi'
 
-export interface ArrivalFilters {
+export interface HeadwayFilters {
   route?: string
   direction?: string
   stop?: string
@@ -13,8 +13,8 @@ export interface ArrivalFilters {
   offset?: number
 }
 
-export const useArrivals = (filters: ArrivalFilters) => {
-  const [data, setData] = useState<ListArrivalsResponse | null>(null)
+export const useHeadways = (filters: HeadwayFilters) => {
+  const [data, setData] = useState<ListHeadwaysResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,8 +34,8 @@ export const useArrivals = (filters: ArrivalFilters) => {
         if (filters.limit != null) params.set('limit', String(filters.limit))
         if (filters.offset != null) params.set('offset', String(filters.offset))
 
-        const res = await adminFetch(`${ADMIN_API_BASE}/arrivals?${params}`)
-        if (!res.ok) throw new Error('Failed to load arrivals')
+        const res = await adminFetch(`${ADMIN_API_BASE}/headways?${params}`)
+        if (!res.ok) throw new Error('Failed to load headways')
         const json = await res.json()
         if (!cancelled) {
           setData(json)
@@ -43,7 +43,7 @@ export const useArrivals = (filters: ArrivalFilters) => {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load arrivals')
+          setError(err instanceof Error ? err.message : 'Failed to load headways')
         }
       } finally {
         if (!cancelled) setLoading(false)

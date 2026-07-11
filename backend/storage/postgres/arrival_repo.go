@@ -49,11 +49,14 @@ func (r *ArrivalRepo) ListArrivals(_ context.Context, filter app.ArrivalFilter) 
 		VehicleID string    `gorm:"column:vehicle_id"`
 		Timestamp time.Time `gorm:"column:timestamp"`
 		StopName  *string   `gorm:"column:stop_name"`
+		RouteName *string   `gorm:"column:route_name"`
 	}
 
 	query := r.db.Table("arrivals").
-		Select("arrivals.stop_id, arrivals.route_id, arrivals.direction, arrivals.vehicle_id, arrivals.timestamp, stops.name AS stop_name").
-		Joins("LEFT JOIN stops ON stops.stop_id = arrivals.stop_id AND stops.route_id = arrivals.route_id AND stops.direction = arrivals.direction")
+		Select(`arrivals.stop_id, arrivals.route_id, arrivals.direction, arrivals.vehicle_id, arrivals.timestamp,
+			stops.name AS stop_name, routes.name AS route_name`).
+		Joins("LEFT JOIN stops ON stops.stop_id = arrivals.stop_id AND stops.route_id = arrivals.route_id AND stops.direction = arrivals.direction").
+		Joins("LEFT JOIN routes ON routes.external_id = arrivals.route_id AND routes.deleted_at IS NULL")
 	query = r.applyArrivalFilter(query, filter)
 
 	var rows []row
@@ -73,6 +76,9 @@ func (r *ArrivalRepo) ListArrivals(_ context.Context, filter app.ArrivalFilter) 
 		if row.StopName != nil {
 			arrivals[i].StopName = *row.StopName
 		}
+		if row.RouteName != nil {
+			arrivals[i].RouteName = *row.RouteName
+		}
 	}
 	return arrivals, nil
 }
@@ -86,6 +92,29 @@ func (r *ArrivalRepo) CountArrivals(_ context.Context, filter app.ArrivalFilter)
 		return 0, err
 	}
 	return count, nil
+}
+
+func (r *ArrivalRepo) ListArrivalsInRange(_ context.Context, start, end time.Time) ([]business.Arrival, error) {
+	var models []arrivalModel
+	err := r.db.Model(&arrivalModel{}).
+		Where("timestamp >= ? AND timestamp < ?", start, end).
+		Order("route_id ASC, direction ASC, stop_id ASC, timestamp ASC").
+		Find(&models).Error
+	if err != nil {
+		return nil, err
+	}
+
+	arrivals := make([]business.Arrival, len(models))
+	for i, model := range models {
+		arrivals[i] = business.Arrival{
+			StopID:    model.StopID,
+			RouteID:   model.RouteID,
+			Direction: model.Direction,
+			VehicleID: model.VehicleID,
+			Timestamp: model.Timestamp,
+		}
+	}
+	return arrivals, nil
 }
 
 func (r *ArrivalRepo) applyArrivalFilter(query *gorm.DB, filter app.ArrivalFilter) *gorm.DB {
@@ -104,6 +133,12 @@ func (r *ArrivalRepo) applyArrivalFilter(query *gorm.DB, filter app.ArrivalFilte
 			"arrivals.stop_id = ? OR stops.name ILIKE ?",
 			filter.Stop, like,
 		)
+	}
+	if filter.From != nil {
+		query = query.Where("arrivals.timestamp >= ?", *filter.From)
+	}
+	if filter.To != nil {
+		query = query.Where("arrivals.timestamp < ?", *filter.To)
 	}
 	return query
 }

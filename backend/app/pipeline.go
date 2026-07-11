@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
 )
@@ -28,6 +29,8 @@ type ArrivalFilter struct {
 	Stop string
 	// VehicleID filters by vehicle_id (exact match).
 	VehicleID string
+	From      *time.Time
+	To        *time.Time
 	// SortAsc sorts by timestamp ascending when true; default is newest first.
 	SortAsc bool
 	Limit   int
@@ -39,6 +42,8 @@ type ArrivalRepository interface {
 	SaveArrival(ctx context.Context, arrival business.Arrival) error
 	ListArrivals(ctx context.Context, filter ArrivalFilter) ([]business.Arrival, error)
 	CountArrivals(ctx context.Context, filter ArrivalFilter) (int64, error)
+	// ListArrivalsInRange returns all arrivals with timestamp in [start, end), ordered for headway computation.
+	ListArrivalsInRange(ctx context.Context, start, end time.Time) ([]business.Arrival, error)
 }
 
 // StopRepository is the port for persisting stop metadata loaded from the CTA API.

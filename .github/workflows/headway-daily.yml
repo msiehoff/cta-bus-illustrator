@@ -1,0 +1,36 @@
+name: Headway daily rollup
+
+on:
+  schedule:
+    # ~6:00 America/Chicago (UTC-5/-6); GitHub cron is UTC.
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+    inputs:
+      service_date:
+        description: 'Service date YYYY-MM-DD (empty = yesterday Chicago)'
+        required: false
+        type: string
+
+jobs:
+  run-headway:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger headway rollup
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          HEADWAY_JOB_TOKEN: ${{ secrets.HEADWAY_JOB_TOKEN }}
+          SERVICE_DATE: ${{ inputs.service_date }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_URL:-}" ] || [ -z "${HEADWAY_JOB_TOKEN:-}" ]; then
+            echo "APP_URL and HEADWAY_JOB_TOKEN secrets are required"
+            exit 1
+          fi
+          BODY='{}'
+          if [ -n "${SERVICE_DATE:-}" ]; then
+            BODY=$(printf '{"service_date":"%s"}' "$SERVICE_DATE")
+          fi
+          curl -sf -X POST "${APP_URL%/}/api/v1/admin/headways/run" \
+            -H "Authorization: Bearer ${HEADWAY_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY"

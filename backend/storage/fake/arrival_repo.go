@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/msiehoff/cta-bus-illustrator/backend/app"
 	"github.com/msiehoff/cta-bus-illustrator/backend/business"
@@ -57,6 +58,32 @@ func (r *ArrivalRepo) CountArrivals(_ context.Context, filter app.ArrivalFilter)
 	return int64(len(r.filteredArrivals(filter))), nil
 }
 
+func (r *ArrivalRepo) ListArrivalsInRange(_ context.Context, start, end time.Time) ([]business.Arrival, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	out := make([]business.Arrival, 0)
+	for _, arrival := range r.Arrivals {
+		if !arrival.Timestamp.Before(start) && arrival.Timestamp.Before(end) {
+			out = append(out, arrival)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+		if a.RouteID != b.RouteID {
+			return a.RouteID < b.RouteID
+		}
+		if a.Direction != b.Direction {
+			return a.Direction < b.Direction
+		}
+		if a.StopID != b.StopID {
+			return a.StopID < b.StopID
+		}
+		return a.Timestamp.Before(b.Timestamp)
+	})
+	return out, nil
+}
+
 func (r *ArrivalRepo) filteredArrivals(filter app.ArrivalFilter) []business.Arrival {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -79,6 +106,12 @@ func (r *ArrivalRepo) filteredArrivals(filter app.ArrivalFilter) []business.Arri
 			if !idMatch && !nameMatch {
 				continue
 			}
+		}
+		if filter.From != nil && arrival.Timestamp.Before(*filter.From) {
+			continue
+		}
+		if filter.To != nil && !arrival.Timestamp.Before(*filter.To) {
+			continue
 		}
 		matches = append(matches, arrival)
 	}
