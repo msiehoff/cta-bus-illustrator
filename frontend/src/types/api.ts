@@ -96,3 +96,21 @@ export interface ListArrivalsResponse {
   limit: number
   offset: number
 }
+
+export interface HeadwayJobRun {
+  id: number
+  serviceDate: string
+  status: string
+  triggeredBy: string
+  startedAt: string
+  finishedAt?: string
+  arrivalsProcessed: number
+  headwaysWritten: number
+  errorMessage?: string
+}
+
+export interface ListHeadwayJobRunsResponse {
+  runs: HeadwayJobRun[]
+  limit: number
+  offset: number
+}

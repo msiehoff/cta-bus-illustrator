@@ -88,6 +88,29 @@ func (r *ArrivalRepo) CountArrivals(_ context.Context, filter app.ArrivalFilter)
 	return count, nil
 }
 
+func (r *ArrivalRepo) ListArrivalsInRange(_ context.Context, start, end time.Time) ([]business.Arrival, error) {
+	var models []arrivalModel
+	err := r.db.Model(&arrivalModel{}).
+		Where("timestamp >= ? AND timestamp < ?", start, end).
+		Order("route_id ASC, direction ASC, stop_id ASC, timestamp ASC").
+		Find(&models).Error
+	if err != nil {
+		return nil, err
+	}
+
+	arrivals := make([]business.Arrival, len(models))
+	for i, model := range models {
+		arrivals[i] = business.Arrival{
+			StopID:    model.StopID,
+			RouteID:   model.RouteID,
+			Direction: model.Direction,
+			VehicleID: model.VehicleID,
+			Timestamp: model.Timestamp,
+		}
+	}
+	return arrivals, nil
+}
+
 func (r *ArrivalRepo) applyArrivalFilter(query *gorm.DB, filter app.ArrivalFilter) *gorm.DB {
 	if filter.RouteID != "" {
 		query = query.Where("arrivals.route_id = ?", filter.RouteID)

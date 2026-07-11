@@ -41,6 +41,42 @@ type ListArrivalsResponse struct {
 	Offset   int               `json:"offset"`
 }
 
+type HeadwayJobRunResponse struct {
+	ID                int64   `json:"id"`
+	ServiceDate       string  `json:"serviceDate"`
+	Status            string  `json:"status"`
+	TriggeredBy       string  `json:"triggeredBy"`
+	StartedAt         string  `json:"startedAt"`
+	FinishedAt        *string `json:"finishedAt,omitempty"`
+	ArrivalsProcessed int     `json:"arrivalsProcessed"`
+	HeadwaysWritten   int     `json:"headwaysWritten"`
+	ErrorMessage      string  `json:"errorMessage,omitempty"`
+}
+
+type ListHeadwayJobRunsResponse struct {
+	Runs   []HeadwayJobRunResponse `json:"runs"`
+	Limit  int                     `json:"limit"`
+	Offset int                     `json:"offset"`
+}
+
+func HeadwayJobRunResponseFrom(run business.HeadwayJobRun) HeadwayJobRunResponse {
+	resp := HeadwayJobRunResponse{
+		ID:                run.ID,
+		ServiceDate:       run.ServiceDate.UTC().Format("2006-01-02"),
+		Status:            string(run.Status),
+		TriggeredBy:       string(run.TriggeredBy),
+		StartedAt:         run.StartedAt.UTC().Format(time.RFC3339),
+		ArrivalsProcessed: run.ArrivalsProcessed,
+		HeadwaysWritten:   run.HeadwaysWritten,
+		ErrorMessage:      run.ErrorMessage,
+	}
+	if run.FinishedAt != nil {
+		v := run.FinishedAt.UTC().Format(time.RFC3339)
+		resp.FinishedAt = &v
+	}
+	return resp
+}
+
 func toPipelineStatusResponse(status app.PipelineStatus, enabled bool, arrivalCount int64) PipelineStatusResponse {
 	resp := PipelineStatusResponse{
 		Enabled:       enabled,

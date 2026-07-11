@@ -11,7 +11,9 @@ type API struct {
 	ctaDataSrc     app.RouteSegmentDataSource
 	pipelineRunner *app.PipelineRunner
 	arrivalRepo    app.ArrivalRepository
+	headwayRollup  *app.HeadwayRollup
 	adminAuth      *AdminAuth
+	jobTokenAuth   *JobTokenAuth
 }
 
 type Options struct {
@@ -19,7 +21,9 @@ type Options struct {
 	CtaDataSrc     app.RouteSegmentDataSource
 	PipelineRunner *app.PipelineRunner
 	ArrivalRepo    app.ArrivalRepository
+	HeadwayRollup  *app.HeadwayRollup
 	AdminAuth      *AdminAuth
+	JobTokenAuth   *JobTokenAuth
 }
 
 func New(opts Options) *API {
@@ -29,7 +33,9 @@ func New(opts Options) *API {
 		ctaDataSrc:     opts.CtaDataSrc,
 		pipelineRunner: opts.PipelineRunner,
 		arrivalRepo:    opts.ArrivalRepo,
+		headwayRollup:  opts.HeadwayRollup,
 		adminAuth:      opts.AdminAuth,
+		jobTokenAuth:   opts.JobTokenAuth,
 	}
 	a.registerRoutes()
 	a.registerAdminRoutes()

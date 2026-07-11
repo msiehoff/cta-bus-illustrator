@@ -13,12 +13,9 @@ type adminLoginRequest struct {
 }
 
 func (a *API) registerAdminRoutes() {
-	if a.adminAuth == nil {
-		return
-	}
-
 	admin := a.router.Group("/api/v1/admin")
-	{
+
+	if a.adminAuth != nil {
 		admin.POST("/login", a.handleAdminLogin)
 		admin.POST("/logout", a.adminAuth.Middleware(), a.handleAdminLogout)
 		admin.GET("/session", a.handleAdminSession)
@@ -29,6 +26,8 @@ func (a *API) registerAdminRoutes() {
 			protected.GET("/arrivals", a.handleAdminListArrivals)
 		}
 	}
+
+	a.registerHeadwayAdminRoutes(admin)
 }
 
 func (a *API) handleAdminLogin(c *gin.Context) {
