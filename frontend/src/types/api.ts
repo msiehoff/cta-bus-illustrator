@@ -183,3 +183,56 @@ export interface ListHeadwaySummariesResponse {
   limit: number
   offset: number
 }
+
+// --- Public headway endpoints ---
+
+export interface HeadwayPeriodStats {
+  count: number
+  meanMinutes: number
+  medianMinutes: number
+  stdDevMinutes: number
+  cv: number
+  avgWaitMinutes: number
+  daysWithData: number
+  periodStart?: string
+  periodEnd?: string
+}
+
+export interface HeadwayRoutePeriod extends HeadwayPeriodStats {
+  routeId: string
+  routeName?: string
+}
+
+export interface HeadwayDayPoint {
+  serviceDate: string
+  medianMinutes: number
+  avgWaitMinutes: number
+  cv: number
+  count: number
+}
+
+export interface HeadwayRoutesListResponse {
+  period: HeadwayPeriodStats
+  routes: HeadwayRoutePeriod[]
+  method: string
+  grain: string
+  days: number
+}
+
+export interface HeadwayRouteDetailResponse {
+  route: HeadwayRoutePeriod
+  series: HeadwayDayPoint[]
+  method: string
+  grain: string
+  days: number
+}
+
+export interface HeadwaySystemResponse {
+  period: HeadwayPeriodStats
+  series: HeadwayDayPoint[]
+  shortestHeadways: HeadwayRoutePeriod[]
+  method: string
+  grain: string
+  days: number
+}
+

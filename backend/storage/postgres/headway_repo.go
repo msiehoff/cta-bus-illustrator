@@ -273,8 +273,8 @@ func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFi
 	if limit <= 0 {
 		limit = 50
 	}
-	if limit > 200 {
-		limit = 200
+	if limit > 10_000 {
+		limit = 10_000
 	}
 
 	order := "headway_summaries.service_date DESC, headway_summaries.mean_minutes DESC"
@@ -359,6 +359,14 @@ func applyHeadwaySummaryFilter(query *gorm.DB, filter app.HeadwaySummaryFilter) 
 	if !filter.ServiceDate.IsZero() {
 		day := time.Date(filter.ServiceDate.Year(), filter.ServiceDate.Month(), filter.ServiceDate.Day(), 0, 0, 0, 0, time.UTC)
 		query = query.Where("headway_summaries.service_date = ?", day)
+	}
+	if filter.From != nil {
+		day := time.Date(filter.From.Year(), filter.From.Month(), filter.From.Day(), 0, 0, 0, 0, time.UTC)
+		query = query.Where("headway_summaries.service_date >= ?", day)
+	}
+	if filter.To != nil {
+		day := time.Date(filter.To.Year(), filter.To.Month(), filter.To.Day(), 0, 0, 0, 0, time.UTC)
+		query = query.Where("headway_summaries.service_date <= ?", day)
 	}
 	if filter.Grain != "" {
 		query = query.Where("headway_summaries.grain = ?", filter.Grain)

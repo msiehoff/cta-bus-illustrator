@@ -4,9 +4,10 @@ import "time"
 
 // Summary grain / method constants persisted by the daily headway job.
 const (
-	HeadwayGrainStop            = "stop"
-	HeadwayGrainRouteDirection  = "route_direction"
-	HeadwayGrainServiceDay      = "service_day"
+	HeadwayGrainStop           = "stop"
+	HeadwayGrainRouteDirection = "route_direction"
+	HeadwayGrainRoute          = "route" // both directions combined
+	HeadwayGrainServiceDay     = "service_day"
 
 	HeadwayMethodPooled    = "pooled"
 	HeadwayMethodEqualStop = "equal_stop"

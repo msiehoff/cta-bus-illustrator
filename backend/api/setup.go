@@ -14,6 +14,7 @@ type API struct {
 	headwayRepo        app.HeadwayRepository
 	headwaySummaryRepo app.HeadwaySummaryRepository
 	headwayRollup      *app.HeadwayRollup
+	headwayPublic      *app.HeadwayPublicService
 	adminAuth          *AdminAuth
 	jobTokenAuth       *JobTokenAuth
 }
@@ -26,6 +27,7 @@ type Options struct {
 	HeadwayRepo        app.HeadwayRepository
 	HeadwaySummaryRepo app.HeadwaySummaryRepository
 	HeadwayRollup      *app.HeadwayRollup
+	HeadwayPublic      *app.HeadwayPublicService
 	AdminAuth          *AdminAuth
 	JobTokenAuth       *JobTokenAuth
 }
@@ -40,8 +42,12 @@ func New(opts Options) *API {
 		headwayRepo:        opts.HeadwayRepo,
 		headwaySummaryRepo: opts.HeadwaySummaryRepo,
 		headwayRollup:      opts.HeadwayRollup,
+		headwayPublic:      opts.HeadwayPublic,
 		adminAuth:          opts.AdminAuth,
 		jobTokenAuth:       opts.JobTokenAuth,
+	}
+	if a.headwayPublic == nil && opts.HeadwaySummaryRepo != nil {
+		a.headwayPublic = app.NewHeadwayPublicService(opts.HeadwaySummaryRepo)
 	}
 	a.registerRoutes()
 	a.registerAdminRoutes()

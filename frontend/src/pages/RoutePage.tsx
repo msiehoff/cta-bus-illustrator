@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useRouteRidership } from '../hooks/useRouteRidership'
 import { useRoutesComparison } from '../hooks/useRoutesComparison'
 import { useRouteName } from '../hooks/useRouteName'
@@ -208,19 +208,23 @@ const RoutePage = () => {
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-dashed border-gray-700 rounded-lg px-4 sm:px-5 py-4 opacity-60 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center shrink-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <Link
+        to={`/headways/routes/${encodeURIComponent(externalId)}`}
+        className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 flex items-center gap-4 hover:border-gray-700 transition-colors"
+      >
+        <div className="w-10 h-10 rounded-lg bg-red-950/50 flex items-center justify-center shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
         </div>
         <div>
-          <span className="text-[10px] bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">Coming soon</span>
-          <p className="text-sm font-medium text-gray-400 mt-1">Headway Metrics</p>
-          <p className="text-xs text-gray-600 mt-0.5">Track frequency, reliability, and schedule adherence for this route</p>
+          <p className="text-sm font-medium text-white">Headway metrics</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Frequency, average wait, and reliability for this route →
+          </p>
         </div>
-      </div>
+      </Link>
     </div>
   )
 }

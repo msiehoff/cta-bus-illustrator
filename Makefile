@@ -1,4 +1,4 @@
-.PHONY: serve serve_all import-route-segments headway-run
+.PHONY: serve serve_all import-route-segments headway-run seed-headways
 
 serve:
 	@trap 'kill 0' SIGINT; \
@@ -32,3 +32,10 @@ headway-run:
 	  exit 1; \
 	fi
 	@echo
+
+# Local-only sample arrivals + headway rollups for /headways UI.
+# Requires DATABASE_URL (backend/.env). Rollups need a running API + HEADWAY_JOB_TOKEN.
+# Usage: make seed-headways
+#        make seed-headways TOKEN=local-dev-token
+seed-headways:
+	TOKEN="$(TOKEN)" APP_URL="$(APP_URL)" bash ./scripts/seed_headways.sh
