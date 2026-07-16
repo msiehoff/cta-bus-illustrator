@@ -81,50 +81,60 @@ const HeadwayRoutePage = () => {
       )}
 
       {!loading && route && route.daysWithData > 0 && (
-        <>
-          <div className="mb-5">
-            <p className="text-xs text-gray-500 mb-2">
-              Across {route.daysWithData} available service day
-              {route.daysWithData === 1 ? '' : 's'}
-              {periodLabel ? ` · ${periodLabel}` : ''}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <StatCard
-                label="Median headway"
-                value={`${formatHeadwayMinutes(route.medianMinutes)} min`}
-              />
-              <StatCard
-                label="Avg wait"
-                value={`${formatHeadwayMinutes(route.avgWaitMinutes)} min`}
-              />
-              <StatCard
-                label={HEADWAY_CONSISTENCY_LABEL}
-                labelHint={HEADWAY_CONSISTENCY_TOOLTIP}
-                value={formatHeadwayCV(route.cv)}
-                trend={consistency?.label}
-                trendUp={consistency?.trendUp}
-              />
-            </div>
-          </div>
-
-          {networkPeriod && networkPeriod.daysWithData > 0 && (
-            <HeadwayContextPanel
-              routeId={externalId}
-              routes={allRoutes}
-              routeMedian={route.medianMinutes}
-              routeWait={route.avgWaitMinutes}
-              networkMedian={networkPeriod.medianMinutes}
-              networkWait={networkPeriod.avgWaitMinutes}
-              periodLabel={periodLabel}
+        <div className="mb-5">
+          <p className="text-xs text-gray-500 mb-2">
+            Across {route.daysWithData} available service day
+            {route.daysWithData === 1 ? '' : 's'}
+            {periodLabel ? ` · ${periodLabel}` : ''}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <StatCard
+              label="Median headway"
+              value={`${formatHeadwayMinutes(route.medianMinutes)} min`}
             />
-          )}
-        </>
+            <StatCard
+              label="Avg wait"
+              value={`${formatHeadwayMinutes(route.avgWaitMinutes)} min`}
+            />
+            <StatCard
+              label={HEADWAY_CONSISTENCY_LABEL}
+              labelHint={HEADWAY_CONSISTENCY_TOOLTIP}
+              value={formatHeadwayCV(route.cv)}
+              trend={consistency?.label}
+              trendUp={consistency?.trendUp}
+            />
+          </div>
+        </div>
       )}
 
       {!loading && (!route || route.daysWithData === 0) && !error && (
         <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-10 text-center text-sm text-gray-500 mb-5">
           No headway summaries for this route yet.
         </div>
+      )}
+
+      <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
+        <h2 className="text-sm font-medium text-white mb-1">Daily series</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Equal-stop · both directions · up to last 30 service days with data
+        </p>
+        {loading ? (
+          <div className="text-gray-500 text-sm py-10 text-center">Loading…</div>
+        ) : (
+          <HeadwayDailyChart series={data?.series ?? []} />
+        )}
+      </div>
+
+      {!loading && route && route.daysWithData > 0 && networkPeriod && networkPeriod.daysWithData > 0 && (
+        <HeadwayContextPanel
+          routeId={externalId}
+          routes={allRoutes}
+          routeMedian={route.medianMinutes}
+          routeWait={route.avgWaitMinutes}
+          networkMedian={networkPeriod.medianMinutes}
+          networkWait={networkPeriod.avgWaitMinutes}
+          periodLabel={periodLabel}
+        />
       )}
 
       {allRoutes.length > 0 && route && route.daysWithData > 0 && (
@@ -141,18 +151,6 @@ const HeadwayRoutePage = () => {
           />
         </div>
       )}
-
-      <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
-        <h2 className="text-sm font-medium text-white mb-1">Daily series</h2>
-        <p className="text-xs text-gray-500 mb-4">
-          Equal-stop · both directions · up to last 30 service days with data
-        </p>
-        {loading ? (
-          <div className="text-gray-500 text-sm py-10 text-center">Loading…</div>
-        ) : (
-          <HeadwayDailyChart series={data?.series ?? []} />
-        )}
-      </div>
     </div>
   )
 }
