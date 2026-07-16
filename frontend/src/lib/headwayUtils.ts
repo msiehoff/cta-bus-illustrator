@@ -9,6 +9,23 @@ export const formatHeadwayCV = (cv: number) => {
   return cv.toFixed(2)
 }
 
+/** User-facing name for coefficient of variation on public pages. */
+export const HEADWAY_CONSISTENCY_LABEL = 'Consistency'
+
+export const HEADWAY_CONSISTENCY_TOOLTIP =
+  'How evenly buses arrive (also called CV). Lower is more clockwork; higher means a mix of bunches and long gaps.'
+
+/** Plain-language band for a CV value. */
+export const describeHeadwayConsistency = (
+  cv: number,
+): { label: string; trendUp?: boolean } => {
+  if (!Number.isFinite(cv)) return { label: '—' }
+  if (cv < 0.3) return { label: 'More even arrivals', trendUp: true }
+  if (cv < 0.6) return { label: 'Typical variation' }
+  return { label: 'Uneven — bunches & gaps', trendUp: false }
+}
+
+
 export const formatHeadwayPeriod = (start?: string, end?: string, daysWithData?: number) => {
   if (!start || !end) {
     return daysWithData ? `${daysWithData} day${daysWithData === 1 ? '' : 's'} of data` : 'No data yet'

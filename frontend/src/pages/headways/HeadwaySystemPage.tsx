@@ -6,6 +6,9 @@ import {
   formatHeadwayCV,
   formatHeadwayMinutes,
   formatHeadwayPeriod,
+  describeHeadwayConsistency,
+  HEADWAY_CONSISTENCY_LABEL,
+  HEADWAY_CONSISTENCY_TOOLTIP,
 } from '../../lib/headwayUtils'
 
 const HeadwaySystemPage = () => {
@@ -54,8 +57,11 @@ const HeadwaySystemPage = () => {
               value={`${formatHeadwayMinutes(period.avgWaitMinutes)} min`}
             />
             <StatCard
-              label="Network CV"
+              label={`Network ${HEADWAY_CONSISTENCY_LABEL.toLowerCase()}`}
+              labelHint={HEADWAY_CONSISTENCY_TOOLTIP}
               value={formatHeadwayCV(period.cv)}
+              trend={describeHeadwayConsistency(period.cv).label}
+              trendUp={describeHeadwayConsistency(period.cv).trendUp}
             />
           </div>
         </div>

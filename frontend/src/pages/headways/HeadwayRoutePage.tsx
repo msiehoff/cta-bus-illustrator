@@ -11,6 +11,9 @@ import {
   formatHeadwayCV,
   formatHeadwayMinutes,
   formatHeadwayPeriod,
+  describeHeadwayConsistency,
+  HEADWAY_CONSISTENCY_LABEL,
+  HEADWAY_CONSISTENCY_TOOLTIP,
 } from '../../lib/headwayUtils'
 
 const PERIOD_DAYS = 30
@@ -30,6 +33,7 @@ const HeadwayRoutePage = () => {
     : null
   const networkPeriod = systemData?.period
   const allRoutes = routesData?.routes ?? []
+  const consistency = route ? describeHeadwayConsistency(route.cv) : null
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
@@ -94,9 +98,11 @@ const HeadwayRoutePage = () => {
                 value={`${formatHeadwayMinutes(route.avgWaitMinutes)} min`}
               />
               <StatCard
-                label="CV (reliability)"
+                label={HEADWAY_CONSISTENCY_LABEL}
+                labelHint={HEADWAY_CONSISTENCY_TOOLTIP}
                 value={formatHeadwayCV(route.cv)}
-                trend="Lower is more even"
+                trend={consistency?.label}
+                trendUp={consistency?.trendUp}
               />
             </div>
           </div>

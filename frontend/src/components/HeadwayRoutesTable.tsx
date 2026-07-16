@@ -2,7 +2,13 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { twMerge } from 'tailwind-merge'
 import type { HeadwayRoutePeriod } from '../types/api'
-import { formatHeadwayCV, formatHeadwayMinutes } from '../lib/headwayUtils'
+import {
+  formatHeadwayCV,
+  formatHeadwayMinutes,
+  HEADWAY_CONSISTENCY_LABEL,
+  HEADWAY_CONSISTENCY_TOOLTIP,
+} from '../lib/headwayUtils'
+import HintLabel from './HintLabel'
 
 type SortColumn = 'route' | 'median' | 'wait' | 'cv'
 
@@ -66,12 +72,51 @@ const HeadwayRoutesTable = ({
     column,
     align = 'left',
     children,
+    hint,
   }: {
     column: SortColumn
     align?: 'left' | 'right'
     children: ReactNode
+    hint?: string
   }) => {
     const active = sort.column === column
+    const sortMark = (
+      <span className="text-[10px] text-gray-600">
+        {active ? (sort.dir === 'asc' ? '↑' : '↓') : ''}
+      </span>
+    )
+
+    if (hint) {
+      return (
+        <th
+          className={twMerge(
+            'px-3 py-2 font-normal relative',
+            align === 'right' && 'text-right',
+          )}
+        >
+          <div
+            className={twMerge(
+              'inline-flex items-center gap-1',
+              align === 'right' && 'justify-end w-full',
+              active ? 'text-white' : 'text-gray-500',
+            )}
+          >
+            <HintLabel hint={hint} align={align === 'right' ? 'right' : 'left'} placement="above">
+              {children}
+            </HintLabel>
+            <button
+              type="button"
+              onClick={() => toggleSort(column)}
+              className="hover:text-white transition-colors"
+              aria-label={`Sort by ${column}`}
+            >
+              {sortMark}
+            </button>
+          </div>
+        </th>
+      )
+    }
+
     return (
       <th
         className={twMerge(
@@ -89,7 +134,7 @@ const HeadwayRoutesTable = ({
           )}
         >
           {children}
-          <span className="text-[10px] text-gray-600">{active ? (sort.dir === 'asc' ? '↑' : '↓') : ''}</span>
+          {sortMark}
         </button>
       </th>
     )
@@ -116,7 +161,13 @@ const HeadwayRoutesTable = ({
               <SortableHeader column="route">Route</SortableHeader>
               <SortableHeader column="median" align="right">Median headway</SortableHeader>
               <SortableHeader column="wait" align="right">Avg wait</SortableHeader>
-              <SortableHeader column="cv" align="right">CV</SortableHeader>
+              <SortableHeader
+                column="cv"
+                align="right"
+                hint={HEADWAY_CONSISTENCY_TOOLTIP}
+              >
+                {HEADWAY_CONSISTENCY_LABEL}
+              </SortableHeader>
             </tr>
           </thead>
           <tbody>

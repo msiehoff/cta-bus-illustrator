@@ -43,7 +43,7 @@ const HeadwayRoutesPage = () => {
 
       <p className="text-[10px] text-gray-600 mt-3">
         Period uses up to the last 30 available service days with headway summaries.
-        Median, wait, and CV are observation-weighted across those days.
+        Median, wait, and consistency are observation-weighted across those days.
       </p>
     </div>
   )
