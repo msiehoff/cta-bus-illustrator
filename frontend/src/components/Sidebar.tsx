@@ -5,6 +5,7 @@ interface NavItem {
   to: string
   label: string
   icon: React.ReactNode
+  end?: boolean
 }
 
 const MapIcon = () => (
@@ -32,22 +33,61 @@ const ListIcon = () => (
   </svg>
 )
 
-const ClockIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-)
-
-export const navItems: NavItem[] = [
-  { to: '/',        label: 'Map',             icon: <MapIcon />   },
-  { to: '/system',  label: 'System Overview', icon: <ChartIcon /> },
-  { to: '/routes',  label: 'Routes',          icon: <ListIcon />  },
+export const ridershipNavItems: NavItem[] = [
+  { to: '/', label: 'Map', icon: <MapIcon />, end: true },
+  { to: '/system', label: 'System', icon: <ChartIcon /> },
+  { to: '/routes', label: 'Routes', icon: <ListIcon /> },
 ]
+
+export const headwayNavItems: NavItem[] = [
+  { to: '/headways/system', label: 'System', icon: <ChartIcon /> },
+  { to: '/headways/routes', label: 'Routes', icon: <ListIcon /> },
+]
+
+/** @deprecated use ridershipNavItems */
+export const navItems = ridershipNavItems
 
 interface SidebarContentProps {
   onNavClick?: () => void
 }
+
+const NavSection = ({
+  title,
+  items,
+  onNavClick,
+}: {
+  title: string
+  items: NavItem[]
+  onNavClick?: () => void
+}) => (
+  <>
+    <p className="px-4 pt-2 pb-1 text-[10px] uppercase tracking-widest text-gray-600">{title}</p>
+    {items.map(item => (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        end={item.end}
+        onClick={onNavClick}
+        className={({ isActive }) =>
+          `flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${
+            isActive
+              ? 'text-red-400 bg-red-950/40'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+          }`
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <span className={isActive ? 'text-red-500' : 'text-gray-500'}>
+              {item.icon}
+            </span>
+            {item.label}
+          </>
+        )}
+      </NavLink>
+    ))}
+  </>
+)
 
 export const SidebarContent = ({ onNavClick }: SidebarContentProps) => (
   <>
@@ -55,46 +95,14 @@ export const SidebarContent = ({ onNavClick }: SidebarContentProps) => (
       <BusIcon size={24} className="text-red-500 shrink-0 mt-0.5" />
       <div>
         <p className="text-sm font-semibold text-white leading-tight">Chicago Transit Lab</p>
-        <p className="text-xs text-gray-500 mt-0.5">Bus Ridership</p>
+        <p className="text-xs text-gray-500 mt-0.5">Bus ridership & service</p>
       </div>
     </div>
 
     <nav className="flex-1 py-2">
-      <p className="px-4 pt-2 pb-1 text-[10px] uppercase tracking-widest text-gray-600">Main</p>
-      {navItems.map(item => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.to === '/'}
-          onClick={onNavClick}
-          className={({ isActive }) =>
-            `flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${
-              isActive
-                ? 'text-red-400 bg-red-950/40'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-            }`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <span className={isActive ? 'text-red-500' : 'text-gray-500'}>
-                {item.icon}
-              </span>
-              {item.label}
-            </>
-          )}
-        </NavLink>
-      ))}
-
-      <div className="border-t border-gray-800 mt-2 pt-2">
-        <p className="px-4 pt-1 pb-1 text-[10px] uppercase tracking-widest text-gray-600">Coming Soon</p>
-        <div className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 cursor-not-allowed">
-          <span className="text-gray-700"><ClockIcon /></span>
-          Headway
-          <span className="ml-auto text-[10px] bg-gray-800 text-gray-600 px-1.5 py-0.5 rounded-full">
-            Soon
-          </span>
-        </div>
+      <NavSection title="Ridership" items={ridershipNavItems} onNavClick={onNavClick} />
+      <div className="border-t border-gray-800 mt-2 pt-1">
+        <NavSection title="Headway" items={headwayNavItems} onNavClick={onNavClick} />
       </div>
     </nav>
   </>

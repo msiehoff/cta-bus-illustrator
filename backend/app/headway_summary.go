@@ -153,8 +153,8 @@ func MeanOfStopMeans(stops []business.HeadwayStopSummary) business.HeadwaySummar
 	}
 }
 
-// BuildPersistedSummaries creates stop, route_direction, and service_day summary rows
-// for a completed service date from observed headway gaps.
+// BuildPersistedSummaries creates stop, route_direction, route, and service_day
+// summary rows for a completed service date from observed headway gaps.
 func BuildPersistedSummaries(
 	headways []business.Headway,
 	serviceDate time.Time,
@@ -165,7 +165,7 @@ func BuildPersistedSummaries(
 	}
 
 	byStop := SummarizeHeadwaysByStop(headways)
-	out := make([]business.HeadwaySummary, 0, len(byStop)*2+8)
+	out := make([]business.HeadwaySummary, 0, len(byStop)*2+16)
 
 	for _, s := range byStop {
 		out = append(out, business.HeadwaySummary{
@@ -186,16 +186,26 @@ func BuildPersistedSummaries(
 	rdGaps := make(map[rdKey][]float64)
 	rdOrder := make([]rdKey, 0)
 
+	routeStops := make(map[string][]business.HeadwayStopSummary)
+	routeGaps := make(map[string][]float64)
+	routeOrder := make([]string, 0)
+
 	for _, h := range headways {
 		k := rdKey{RouteID: h.RouteID, Direction: h.Direction}
 		if _, ok := rdGaps[k]; !ok {
 			rdOrder = append(rdOrder, k)
 		}
 		rdGaps[k] = append(rdGaps[k], h.HeadwayMinutes)
+
+		if _, ok := routeGaps[h.RouteID]; !ok {
+			routeOrder = append(routeOrder, h.RouteID)
+		}
+		routeGaps[h.RouteID] = append(routeGaps[h.RouteID], h.HeadwayMinutes)
 	}
 	for _, s := range byStop {
 		k := rdKey{RouteID: s.RouteID, Direction: s.Direction}
 		rdStops[k] = append(rdStops[k], s)
+		routeStops[s.RouteID] = append(routeStops[s.RouteID], s)
 	}
 
 	for _, k := range rdOrder {
@@ -219,6 +229,29 @@ func BuildPersistedSummaries(
 				RouteID:             k.RouteID,
 				Direction:           k.Direction,
 				HeadwaySummaryStats: MeanOfStopMeans(rdStops[k]),
+			},
+		)
+	}
+
+	for _, routeID := range routeOrder {
+		out = append(out,
+			business.HeadwaySummary{
+				ServiceDate:         serviceDate,
+				WindowStart:         windowStart,
+				WindowEnd:           windowEnd,
+				Grain:               business.HeadwayGrainRoute,
+				Method:              business.HeadwayMethodPooled,
+				RouteID:             routeID,
+				HeadwaySummaryStats: SummarizeMinutes(routeGaps[routeID]),
+			},
+			business.HeadwaySummary{
+				ServiceDate:         serviceDate,
+				WindowStart:         windowStart,
+				WindowEnd:           windowEnd,
+				Grain:               business.HeadwayGrainRoute,
+				Method:              business.HeadwayMethodEqualStop,
+				RouteID:             routeID,
+				HeadwaySummaryStats: MeanOfStopMeans(routeStops[routeID]),
 			},
 		)
 	}

@@ -47,9 +47,11 @@ type HeadwaySummaryRepository interface {
 }
 
 // HeadwaySummaryFilter scopes reads of persisted summaries.
-// ServiceDate is optional; zero means all dates.
+// ServiceDate is optional; zero means all dates (or use From/To for a range).
 type HeadwaySummaryFilter struct {
 	ServiceDate time.Time
+	From        *time.Time // inclusive service_date lower bound
+	To          *time.Time // inclusive service_date upper bound
 	Grain       string
 	Method      string
 	RouteID     string

@@ -7,6 +7,9 @@ import SystemOverview from './pages/SystemOverview'
 import RoutesPage from './pages/RoutesPage'
 import RoutePage from './pages/RoutePage'
 import CorridorRoutePage from './pages/CorridorRoutePage'
+import HeadwaySystemPage from './pages/headways/HeadwaySystemPage'
+import HeadwayRoutesPage from './pages/headways/HeadwayRoutesPage'
+import HeadwayRoutePage from './pages/headways/HeadwayRoutePage'
 import AdminLogin from './pages/admin/AdminLogin'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminArrivals from './pages/admin/AdminArrivals'
@@ -72,6 +75,9 @@ const AppShell = () => {
             <Route path="/routes" element={<RoutesPage />} />
             <Route path="/routes/corridor/:localId" element={<CorridorRoutePage />} />
             <Route path="/routes/:externalId" element={<RoutePage />} />
+            <Route path="/headways/system" element={<HeadwaySystemPage />} />
+            <Route path="/headways/routes" element={<HeadwayRoutesPage />} />
+            <Route path="/headways/routes/:externalId" element={<HeadwayRoutePage />} />
           </Routes>
         </main>
       </div>

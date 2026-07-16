@@ -28,6 +28,7 @@ func (a *API) registerRoutes() {
 		v1.GET("/ridership/system", a.handleGetSystemRidership)
 		v1.GET("/ridership/routes/:externalId", a.handleGetRouteRidership)
 		v1.POST("/ridership/import", a.handleImportRidership)
+		a.registerHeadwayPublicRoutes(v1)
 	}
 }
 

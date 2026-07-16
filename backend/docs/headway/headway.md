@@ -313,6 +313,7 @@ in one undifferentiated table. Facts are one grain; summaries are another
 | `stop` | `pooled` | Stats for one stop+route+direction |
 | `route_direction` | `pooled` | All gaps on that route+direction |
 | `route_direction` | `equal_stop` | Mean of per-stop means |
+| `route` | `pooled` / `equal_stop` | Both directions on a route combined |
 | `service_day` | `pooled` / `equal_stop` | Whole service date |
 
 * * *

@@ -249,6 +249,20 @@ func (r *HeadwaySummaryRepo) filtered(filter app.HeadwaySummaryFilter) []busines
 		if !filter.ServiceDate.IsZero() && s.ServiceDate.Format("2006-01-02") != filter.ServiceDate.Format("2006-01-02") {
 			continue
 		}
+		if filter.From != nil {
+			fromDay := time.Date(filter.From.Year(), filter.From.Month(), filter.From.Day(), 0, 0, 0, 0, time.UTC)
+			sDay := time.Date(s.ServiceDate.Year(), s.ServiceDate.Month(), s.ServiceDate.Day(), 0, 0, 0, 0, time.UTC)
+			if sDay.Before(fromDay) {
+				continue
+			}
+		}
+		if filter.To != nil {
+			toDay := time.Date(filter.To.Year(), filter.To.Month(), filter.To.Day(), 0, 0, 0, 0, time.UTC)
+			sDay := time.Date(s.ServiceDate.Year(), s.ServiceDate.Month(), s.ServiceDate.Day(), 0, 0, 0, 0, time.UTC)
+			if sDay.After(toDay) {
+				continue
+			}
+		}
 		if filter.Grain != "" && s.Grain != filter.Grain {
 			continue
 		}

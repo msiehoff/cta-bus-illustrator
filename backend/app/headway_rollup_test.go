@@ -64,13 +64,15 @@ func TestBuildPersistedSummaries(t *testing.T) {
 	start, end := app.ServiceDateBounds(serviceDate)
 
 	got := app.BuildPersistedSummaries(headways, serviceDate, start, end)
-	var stops, routeDir, serviceDay int
+	var stops, routeDir, routes, serviceDay int
 	for _, s := range got {
 		switch s.Grain {
 		case business.HeadwayGrainStop:
 			stops++
 		case business.HeadwayGrainRouteDirection:
 			routeDir++
+		case business.HeadwayGrainRoute:
+			routes++
 		case business.HeadwayGrainServiceDay:
 			serviceDay++
 		}
@@ -80,6 +82,9 @@ func TestBuildPersistedSummaries(t *testing.T) {
 	}
 	if routeDir != 2 { // pooled + equal_stop
 		t.Fatalf("route_direction rows = %d", routeDir)
+	}
+	if routes != 2 { // pooled + equal_stop, both directions combined
+		t.Fatalf("route rows = %d", routes)
 	}
 	if serviceDay != 2 {
 		t.Fatalf("service_day rows = %d", serviceDay)
