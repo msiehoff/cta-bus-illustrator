@@ -60,12 +60,12 @@ type HeadwayRouteDetailResponse struct {
 }
 
 type HeadwaySystemResponse struct {
-	Period       HeadwayPeriodStatsResponse   `json:"period"`
-	Series       []HeadwayDayPointResponse    `json:"series"`
-	LongestWaits []HeadwayRoutePeriodResponse `json:"longestWaits"`
-	Method       string                       `json:"method"`
-	Grain        string                       `json:"grain"`
-	Days         int                          `json:"days"`
+	Period           HeadwayPeriodStatsResponse   `json:"period"`
+	Series           []HeadwayDayPointResponse    `json:"series"`
+	ShortestHeadways []HeadwayRoutePeriodResponse `json:"shortestHeadways"`
+	Method           string                       `json:"method"`
+	Grain            string                       `json:"grain"`
+	Days             int                          `json:"days"`
 }
 
 func (a *API) handleGetHeadwayRoutes(c *gin.Context) {
@@ -109,12 +109,12 @@ func (a *API) handleGetHeadwaySystem(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, HeadwaySystemResponse{
-		Period:       toPeriodStatsResponse(overview.HeadwayPeriodStats),
-		Series:       toDayPointResponses(overview.Series),
-		LongestWaits: toRoutePeriodResponses(overview.LongestWaits),
-		Method:       "equal_stop",
-		Grain:        "service_day",
-		Days:         app.ResolvePeriodDays(days),
+		Period:           toPeriodStatsResponse(overview.HeadwayPeriodStats),
+		Series:           toDayPointResponses(overview.Series),
+		ShortestHeadways: toRoutePeriodResponses(overview.ShortestHeadways),
+		Method:           "equal_stop",
+		Grain:            "service_day",
+		Days:             app.ResolvePeriodDays(days),
 	})
 }
 

@@ -230,7 +230,7 @@ export interface HeadwayRouteDetailResponse {
 export interface HeadwaySystemResponse {
   period: HeadwayPeriodStats
   series: HeadwayDayPoint[]
-  longestWaits: HeadwayRoutePeriod[]
+  shortestHeadways: HeadwayRoutePeriod[]
   method: string
   grain: string
   days: number

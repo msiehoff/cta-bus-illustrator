@@ -70,14 +70,14 @@ const HeadwaySystemPage = () => {
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
-        <h2 className="text-sm font-medium text-white mb-1">Longest median headways</h2>
-        <p className="text-xs text-gray-500 mb-4">Routes with the highest period median</p>
-        {!loading && !(data?.longestWaits?.length) && (
+        <h2 className="text-sm font-medium text-white mb-1">Shortest median headways</h2>
+        <p className="text-xs text-gray-500 mb-4">Routes with the lowest period median</p>
+        {!loading && !(data?.shortestHeadways?.length) && (
           <p className="text-sm text-gray-500 py-4 text-center">No routes to rank yet.</p>
         )}
-        {!loading && !!data?.longestWaits?.length && (
+        {!loading && !!data?.shortestHeadways?.length && (
           <ul className="divide-y divide-gray-800">
-            {data.longestWaits.map(route => (
+            {data.shortestHeadways.map(route => (
               <li key={route.routeId}>
                 <Link
                   to={`/headways/routes/${encodeURIComponent(route.routeId)}`}

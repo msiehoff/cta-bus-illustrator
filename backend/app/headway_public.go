@@ -44,11 +44,11 @@ type HeadwayRouteDetail struct {
 	Series []HeadwayDayPoint
 }
 
-// HeadwaySystemOverview is network period stats, daily series, and longest-headway routes.
+// HeadwaySystemOverview is network period stats, daily series, and shortest-headway routes.
 type HeadwaySystemOverview struct {
 	HeadwayPeriodStats
-	Series       []HeadwayDayPoint
-	LongestWaits []HeadwayRoutePeriod
+	Series          []HeadwayDayPoint
+	ShortestHeadways []HeadwayRoutePeriod
 }
 
 // HeadwayPublicService reads persisted summaries for the rider-facing UI.
@@ -154,15 +154,21 @@ func (s *HeadwayPublicService) GetSystem(ctx context.Context, days int) (Headway
 	stats.PeriodStart = periodMeta.PeriodStart
 	stats.PeriodEnd = periodMeta.PeriodEnd
 
-	longest := routes
-	if len(longest) > 10 {
-		longest = longest[:10]
+	sort.Slice(routes, func(i, j int) bool {
+		if routes[i].MedianMinutes != routes[j].MedianMinutes {
+			return routes[i].MedianMinutes < routes[j].MedianMinutes
+		}
+		return routes[i].RouteID < routes[j].RouteID
+	})
+	shortest := routes
+	if len(shortest) > 10 {
+		shortest = shortest[:10]
 	}
 
 	return HeadwaySystemOverview{
 		HeadwayPeriodStats: stats,
 		Series:             toDaySeries(dayRows),
-		LongestWaits:       longest,
+		ShortestHeadways:   shortest,
 	}, nil
 }
 
