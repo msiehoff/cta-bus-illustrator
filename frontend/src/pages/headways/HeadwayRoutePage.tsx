@@ -1,18 +1,26 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useHeadwayRoute } from '../../hooks/useHeadwayRoute'
+import { useHeadwayRoutes } from '../../hooks/useHeadwayRoutes'
+import { useHeadwaySystem } from '../../hooks/useHeadwaySystem'
 import { useRouteName } from '../../hooks/useRouteName'
 import StatCard from '../../components/StatCard'
 import HeadwayDailyChart from '../../components/HeadwayDailyChart'
+import HeadwayContextPanel from '../../components/HeadwayContextPanel'
+import HeadwayDistributionChart from '../../components/HeadwayDistributionChart'
 import {
   formatHeadwayCV,
   formatHeadwayMinutes,
   formatHeadwayPeriod,
 } from '../../lib/headwayUtils'
 
+const PERIOD_DAYS = 30
+
 const HeadwayRoutePage = () => {
   const { externalId = '' } = useParams<{ externalId: string }>()
   const navigate = useNavigate()
-  const { data, loading, error } = useHeadwayRoute(externalId, 30)
+  const { data, loading, error } = useHeadwayRoute(externalId, PERIOD_DAYS)
+  const { data: routesData } = useHeadwayRoutes(PERIOD_DAYS)
+  const { data: systemData } = useHeadwaySystem(PERIOD_DAYS)
   const fallbackName = useRouteName(externalId)
 
   const route = data?.route
@@ -20,6 +28,8 @@ const HeadwayRoutePage = () => {
   const periodLabel = route
     ? formatHeadwayPeriod(route.periodStart, route.periodEnd, route.daysWithData)
     : null
+  const networkPeriod = systemData?.period
+  const allRoutes = routesData?.routes ?? []
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
@@ -67,26 +77,62 @@ const HeadwayRoutePage = () => {
       )}
 
       {!loading && route && route.daysWithData > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-          <StatCard
-            label="Median headway"
-            value={`${formatHeadwayMinutes(route.medianMinutes)} min`}
-          />
-          <StatCard
-            label="Avg wait"
-            value={`${formatHeadwayMinutes(route.avgWaitMinutes)} min`}
-          />
-          <StatCard
-            label="CV (reliability)"
-            value={formatHeadwayCV(route.cv)}
-            trend="Lower is more even"
-          />
-        </div>
+        <>
+          <div className="mb-5">
+            <p className="text-xs text-gray-500 mb-2">
+              Across {route.daysWithData} available service day
+              {route.daysWithData === 1 ? '' : 's'}
+              {periodLabel ? ` · ${periodLabel}` : ''}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <StatCard
+                label="Median headway"
+                value={`${formatHeadwayMinutes(route.medianMinutes)} min`}
+              />
+              <StatCard
+                label="Avg wait"
+                value={`${formatHeadwayMinutes(route.avgWaitMinutes)} min`}
+              />
+              <StatCard
+                label="CV (reliability)"
+                value={formatHeadwayCV(route.cv)}
+                trend="Lower is more even"
+              />
+            </div>
+          </div>
+
+          {networkPeriod && networkPeriod.daysWithData > 0 && (
+            <HeadwayContextPanel
+              routeId={externalId}
+              routes={allRoutes}
+              routeMedian={route.medianMinutes}
+              routeWait={route.avgWaitMinutes}
+              networkMedian={networkPeriod.medianMinutes}
+              networkWait={networkPeriod.avgWaitMinutes}
+              periodLabel={periodLabel}
+            />
+          )}
+        </>
       )}
 
       {!loading && (!route || route.daysWithData === 0) && !error && (
         <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-10 text-center text-sm text-gray-500 mb-5">
           No headway summaries for this route yet.
+        </div>
+      )}
+
+      {allRoutes.length > 0 && route && route.daysWithData > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
+          <h2 className="text-sm font-medium text-white mb-1">Where this route falls</h2>
+          <p className="text-xs text-gray-500 mb-2">
+            Network median headway distribution
+            {periodLabel ? ` · ${periodLabel}` : ''}
+          </p>
+          <HeadwayDistributionChart
+            routes={allRoutes}
+            highlightRouteId={externalId}
+            highlightRouteName={routeName}
+          />
         </div>
       )}
 
