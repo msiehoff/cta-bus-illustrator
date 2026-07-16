@@ -65,22 +65,61 @@ export interface HeadwayDensityPoint {
   rangeLabel: string
 }
 
+export interface HeadwayDensityResult {
+  bins: HeadwayDensityPoint[]
+  /** Routes with median above the chart axis max (outliers). */
+  excludedCount: number
+  axisMaxMinutes: number
+}
+
+const HEADWAY_DIST_ABS_CAP_MINUTES = 60
+
+const percentileSorted = (sortedAsc: number[], p: number): number => {
+  if (!sortedAsc.length) return 0
+  const rank = Math.ceil((p / 100) * sortedAsc.length) - 1
+  return sortedAsc[Math.min(sortedAsc.length - 1, Math.max(0, rank))]
+}
+
+/**
+ * Build a density chart domain that ignores extreme outlier medians
+ * (e.g. 400+ min) so typical routes stay readable.
+ */
 export const buildHeadwayDensity = (
   routes: { medianMinutes: number }[],
   binCount = 16,
-): HeadwayDensityPoint[] => {
-  const values = routes.map(r => r.medianMinutes).filter(v => v > 0)
-  if (!values.length) return []
-  if (values.length === 1) {
-    return [{
-      minutes: values[0],
-      routeCount: 1,
-      rangeLabel: `${formatHeadwayMinutes(values[0])} min`,
-    }]
+): HeadwayDensityResult => {
+  const values = routes
+    .map(r => r.medianMinutes)
+    .filter(v => Number.isFinite(v) && v > 0)
+    .sort((a, b) => a - b)
+
+  if (!values.length) {
+    return { bins: [], excludedCount: 0, axisMaxMinutes: 0 }
   }
 
-  const min = Math.min(...values)
-  const max = Math.max(...values)
+  const p95 = percentileSorted(values, 95)
+  const axisMaxMinutes = Math.min(Math.max(p95, values[0]), HEADWAY_DIST_ABS_CAP_MINUTES)
+  const clipped = values.filter(v => v <= axisMaxMinutes)
+  const excludedCount = values.length - clipped.length
+
+  if (!clipped.length) {
+    return { bins: [], excludedCount, axisMaxMinutes }
+  }
+
+  if (clipped.length === 1) {
+    return {
+      bins: [{
+        minutes: clipped[0],
+        routeCount: 1,
+        rangeLabel: `${formatHeadwayMinutes(clipped[0])} min`,
+      }],
+      excludedCount,
+      axisMaxMinutes,
+    }
+  }
+
+  const min = Math.min(...clipped)
+  const max = Math.max(...clipped)
   const binWidth = (max - min) / binCount || 1
 
   const bins = Array.from({ length: binCount }, (_, i) => {
@@ -89,19 +128,24 @@ export const buildHeadwayDensity = (
     return { binMin, binMax, routeCount: 0 }
   })
 
-  for (const value of values) {
+  for (const value of clipped) {
     let index = Math.floor((value - min) / binWidth)
     if (index >= binCount) index = binCount - 1
     if (index < 0) index = 0
     bins[index].routeCount++
   }
 
-  return bins.map(bin => ({
-    minutes: (bin.binMin + bin.binMax) / 2,
-    routeCount: bin.routeCount,
-    rangeLabel: `${formatHeadwayMinutes(bin.binMin)}–${formatHeadwayMinutes(bin.binMax)} min`,
-  }))
+  return {
+    bins: bins.map(bin => ({
+      minutes: (bin.binMin + bin.binMax) / 2,
+      routeCount: bin.routeCount,
+      rangeLabel: `${formatHeadwayMinutes(bin.binMin)}–${formatHeadwayMinutes(bin.binMax)} min`,
+    })),
+    excludedCount,
+    axisMaxMinutes,
+  }
 }
+
 
 /** Share of routes with a longer median than `value` (higher = this route is relatively frequent). */
 export const getShorterThanPercentile = (

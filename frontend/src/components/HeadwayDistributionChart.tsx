@@ -34,7 +34,10 @@ const HeadwayDistributionChart = ({
   highlightRouteName,
   height = 200,
 }: Props) => {
-  const bins = useMemo(() => buildHeadwayDensity(routes), [routes])
+  const { bins, excludedCount, axisMaxMinutes } = useMemo(
+    () => buildHeadwayDensity(routes),
+    [routes],
+  )
 
   const highlight = useMemo(() => {
     if (!highlightRouteId) return null
@@ -44,8 +47,9 @@ const HeadwayDistributionChart = ({
       minutes: route.medianMinutes,
       percentile: getShorterThanPercentile(routes, route.medianMinutes),
       name: highlightRouteName || route.routeName || route.routeId,
+      offScale: route.medianMinutes > axisMaxMinutes,
     }
-  }, [routes, highlightRouteId, highlightRouteName])
+  }, [routes, highlightRouteId, highlightRouteName, axisMaxMinutes])
 
   if (!bins.length) {
     return (
@@ -63,12 +67,24 @@ const HeadwayDistributionChart = ({
           {' '}has a shorter median headway than{' '}
           <span className="text-white font-medium">{highlight.percentile}%</span> of routes
           ({formatHeadwayMinutes(highlight.minutes)} min)
+          {highlight.offScale && (
+            <span className="text-gray-500">
+              {' '}· outside chart scale (shown up to {formatHeadwayMinutes(axisMaxMinutes)} min)
+            </span>
+          )}
         </p>
       )}
       <p className="text-xs text-gray-500 mb-3">
         {highlight
           ? 'Height shows how many routes fall in each median-headway band — peaks mean lots of routes at that level.'
           : 'How period median headway is spread across routes. Height = number of routes in each band.'}
+        {excludedCount > 0 && (
+          <>
+            {' '}
+            Chart excludes {excludedCount} outlier route{excludedCount === 1 ? '' : 's'} above{' '}
+            {formatHeadwayMinutes(axisMaxMinutes)} min so the scale stays readable.
+          </>
+        )}
       </p>
       <ResponsiveContainer width="100%" height={height}>
         <AreaChart data={bins} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
@@ -125,7 +141,7 @@ const HeadwayDistributionChart = ({
             fillOpacity={0.2}
             isAnimationActive={false}
           />
-          {highlight && (
+          {highlight && !highlight.offScale && (
             <ReferenceLine
               x={highlight.minutes}
               stroke="#fbbf24"
@@ -141,7 +157,7 @@ const HeadwayDistributionChart = ({
           )}
         </AreaChart>
       </ResponsiveContainer>
-      {highlight && (
+      {highlight && !highlight.offScale && (
         <div className="flex items-center gap-1.5 mt-2">
           <span className="inline-block w-4 border-t-2 border-dashed border-amber-400" />
           <span className="text-[10px] text-gray-500">This route</span>
