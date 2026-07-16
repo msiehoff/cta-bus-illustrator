@@ -21,10 +21,9 @@ const HeadwaySystemPage = () => {
         <h1 className="text-xl font-semibold text-white">Headway · System</h1>
         <p className="text-sm text-gray-400 mt-0.5">
           Network service frequency
-          {periodLabel ? ` · ${periodLabel}` : ''}
-          {period?.daysWithData
-            ? ` · ${period.daysWithData} service day${period.daysWithData === 1 ? '' : 's'}`
-            : ''}
+          {periodLabel
+            ? ` · up to last 30 available days (${periodLabel})`
+            : ' · up to last 30 available service days'}
         </p>
       </div>
 
@@ -39,19 +38,26 @@ const HeadwaySystemPage = () => {
       )}
 
       {!loading && period && period.daysWithData > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-          <StatCard
-            label="Network median headway"
-            value={`${formatHeadwayMinutes(period.medianMinutes)} min`}
-          />
-          <StatCard
-            label="Network avg wait"
-            value={`${formatHeadwayMinutes(period.avgWaitMinutes)} min`}
-          />
-          <StatCard
-            label="Network CV"
-            value={formatHeadwayCV(period.cv)}
-          />
+        <div className="mb-5">
+          <p className="text-xs text-gray-500 mb-2">
+            Across {period.daysWithData} available service day
+            {period.daysWithData === 1 ? '' : 's'}
+            {periodLabel ? ` · ${periodLabel}` : ''}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <StatCard
+              label="Network median headway"
+              value={`${formatHeadwayMinutes(period.medianMinutes)} min`}
+            />
+            <StatCard
+              label="Network avg wait"
+              value={`${formatHeadwayMinutes(period.avgWaitMinutes)} min`}
+            />
+            <StatCard
+              label="Network CV"
+              value={formatHeadwayCV(period.cv)}
+            />
+          </div>
         </div>
       )}
 
@@ -71,7 +77,13 @@ const HeadwaySystemPage = () => {
 
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-1">Shortest median headways</h2>
-        <p className="text-xs text-gray-500 mb-4">Routes with the lowest period median</p>
+        <p className="text-xs text-gray-500 mb-4">
+          Lowest period medians
+          {period?.daysWithData
+            ? ` · across ${period.daysWithData} available service day${period.daysWithData === 1 ? '' : 's'}`
+            : ''}
+          {periodLabel ? ` · ${periodLabel}` : ''}
+        </p>
         {!loading && !(data?.shortestHeadways?.length) && (
           <p className="text-sm text-gray-500 py-4 text-center">No routes to rank yet.</p>
         )}
