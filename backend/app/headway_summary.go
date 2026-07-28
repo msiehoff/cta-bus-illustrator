@@ -154,11 +154,12 @@ func MeanOfStopMeans(stops []business.HeadwayStopSummary) business.HeadwaySummar
 }
 
 // BuildPersistedSummaries creates stop, route_direction, route, and service_day
-// summary rows for a completed service date from observed headway gaps.
+// summary rows for a completed service date / window from observed headway gaps.
 func BuildPersistedSummaries(
 	headways []business.Headway,
 	serviceDate time.Time,
 	windowStart, windowEnd time.Time,
+	windowKey string,
 ) []business.HeadwaySummary {
 	if len(headways) == 0 {
 		return nil
@@ -172,6 +173,7 @@ func BuildPersistedSummaries(
 			ServiceDate:         serviceDate,
 			WindowStart:         windowStart,
 			WindowEnd:           windowEnd,
+			WindowKey:           windowKey,
 			Grain:               business.HeadwayGrainStop,
 			Method:              business.HeadwayMethodPooled,
 			StopID:              s.StopID,
@@ -214,6 +216,7 @@ func BuildPersistedSummaries(
 				ServiceDate:         serviceDate,
 				WindowStart:         windowStart,
 				WindowEnd:           windowEnd,
+				WindowKey:           windowKey,
 				Grain:               business.HeadwayGrainRouteDirection,
 				Method:              business.HeadwayMethodPooled,
 				RouteID:             k.RouteID,
@@ -224,6 +227,7 @@ func BuildPersistedSummaries(
 				ServiceDate:         serviceDate,
 				WindowStart:         windowStart,
 				WindowEnd:           windowEnd,
+				WindowKey:           windowKey,
 				Grain:               business.HeadwayGrainRouteDirection,
 				Method:              business.HeadwayMethodEqualStop,
 				RouteID:             k.RouteID,
@@ -239,6 +243,7 @@ func BuildPersistedSummaries(
 				ServiceDate:         serviceDate,
 				WindowStart:         windowStart,
 				WindowEnd:           windowEnd,
+				WindowKey:           windowKey,
 				Grain:               business.HeadwayGrainRoute,
 				Method:              business.HeadwayMethodPooled,
 				RouteID:             routeID,
@@ -248,6 +253,7 @@ func BuildPersistedSummaries(
 				ServiceDate:         serviceDate,
 				WindowStart:         windowStart,
 				WindowEnd:           windowEnd,
+				WindowKey:           windowKey,
 				Grain:               business.HeadwayGrainRoute,
 				Method:              business.HeadwayMethodEqualStop,
 				RouteID:             routeID,
@@ -261,6 +267,7 @@ func BuildPersistedSummaries(
 			ServiceDate:         serviceDate,
 			WindowStart:         windowStart,
 			WindowEnd:           windowEnd,
+			WindowKey:           windowKey,
 			Grain:               business.HeadwayGrainServiceDay,
 			Method:              business.HeadwayMethodPooled,
 			HeadwaySummaryStats: SummarizeHeadways(headways),
@@ -269,6 +276,7 @@ func BuildPersistedSummaries(
 			ServiceDate:         serviceDate,
 			WindowStart:         windowStart,
 			WindowEnd:           windowEnd,
+			WindowKey:           windowKey,
 			Grain:               business.HeadwayGrainServiceDay,
 			Method:              business.HeadwayMethodEqualStop,
 			HeadwaySummaryStats: MeanOfStopMeans(byStop),

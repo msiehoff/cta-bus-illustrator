@@ -252,6 +252,7 @@ func (r *HeadwaySummaryRepo) InsertBatch(_ context.Context, summaries []business
 			ServiceDate:      s.ServiceDate,
 			WindowStart:      s.WindowStart,
 			WindowEnd:        s.WindowEnd,
+			WindowKey:        s.WindowKey,
 			Grain:            s.Grain,
 			Method:           s.Method,
 			StopID:           s.StopID,
@@ -286,6 +287,7 @@ func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFi
 		ServiceDate      time.Time `gorm:"column:service_date"`
 		WindowStart      time.Time `gorm:"column:window_start"`
 		WindowEnd        time.Time `gorm:"column:window_end"`
+		WindowKey        string    `gorm:"column:window_key"`
 		Grain            string    `gorm:"column:grain"`
 		Method           string    `gorm:"column:method"`
 		StopID           string    `gorm:"column:stop_id"`
@@ -320,6 +322,7 @@ func (r *HeadwaySummaryRepo) List(_ context.Context, filter app.HeadwaySummaryFi
 			ServiceDate: row.ServiceDate,
 			WindowStart: row.WindowStart,
 			WindowEnd:   row.WindowEnd,
+			WindowKey:   row.WindowKey,
 			Grain:       row.Grain,
 			Method:      row.Method,
 			StopID:      row.StopID,
@@ -367,6 +370,9 @@ func applyHeadwaySummaryFilter(query *gorm.DB, filter app.HeadwaySummaryFilter) 
 	if filter.To != nil {
 		day := time.Date(filter.To.Year(), filter.To.Month(), filter.To.Day(), 0, 0, 0, 0, time.UTC)
 		query = query.Where("headway_summaries.service_date <= ?", day)
+	}
+	if filter.WindowKey != "" {
+		query = query.Where("headway_summaries.window_key = ?", filter.WindowKey)
 	}
 	if filter.Grain != "" {
 		query = query.Where("headway_summaries.grain = ?", filter.Grain)

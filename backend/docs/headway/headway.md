@@ -235,13 +235,18 @@ Persisted aggregates written by the same daily job as observed headways.
 ```yaml
 headway_summaries:
   service_date
-  window_start / window_end   # America/Chicago day bounds
-  grain                      # stop | route_direction | service_day
+  window_start / window_end   # America/Chicago bounds for this window_key
+  window_key                 # overall | weekday_am | weekday_mid | weekday_pm | weekday_eve | saturday | sunday
+  grain                      # stop | route_direction | route | service_day  (spatial)
   method                     # pooled | equal_stop
   stop_id / route_id / direction  # empty string when unused for grain
   observation_count
   mean_minutes / median_minutes / stddev_minutes / cv / avg_wait_minutes
 ```
+
+Unique key: `(service_date, window_key, grain, method, route_id, direction, stop_id)`.
+One row per service date × temporal window × spatial grain — not month-spanning rows.
+Multi-day “last 30 days weekday AM” is an observation-weighted combine of daily `weekday_am` rows.
 
 * * *
 # Headway Computation Model
@@ -296,7 +301,7 @@ scheduled headways for bunching/gap % metrics.
 | Layer | Storage | Role |
 |-------|---------|------|
 | **Observed headways** | `headways` table | Facts — idempotent daily rollup output |
-| **Summaries** | `headway_summaries` table | Mean/median/CV by grain × method for that service date |
+| **Summaries** | `headway_summaries` table | Mean/median/CV by **window_key** × grain × method for that service date |
 
 The daily job writes **both** layers for `service_date = D` (delete + insert).
 Admin/rider APIs prefer stored summaries when a service date is set; they fall back
@@ -304,9 +309,9 @@ to compute-on-read only for ad-hoc filters (e.g. vehicle) or when no job has run
 
 Do **not** mix `"observed"` and `"weekday_am_avg"` as interchangeable row types
 in one undifferentiated table. Facts are one grain; summaries are another
-(`grain` + `method` on `headway_summaries`).
+(`window_key` + `grain` + `method` on `headway_summaries`).
 
-### headway_summaries grains
+### headway_summaries grains (spatial)
 
 | Grain | Method | Meaning |
 |-------|--------|---------|
@@ -314,7 +319,25 @@ in one undifferentiated table. Facts are one grain; summaries are another
 | `route_direction` | `pooled` | All gaps on that route+direction |
 | `route_direction` | `equal_stop` | Mean of per-stop means |
 | `route` | `pooled` / `equal_stop` | Both directions on a route combined |
-| `service_day` | `pooled` / `equal_stop` | Whole service date |
+| `service_day` | `pooled` / `equal_stop` | Whole service date (within the window) |
+
+### headway_summaries window_key (temporal)
+
+Assigned by each gap’s **later arrival** timestamp (America/Chicago). Empty windows are skipped (no gaps → no row).
+
+| `window_key` | When written | Clock bounds |
+|--------------|--------------|--------------|
+| `overall` | Every day | Full service date `[00:00, next 00:00)` |
+| `weekday_am` | Mon–Fri | 06:00–09:00 |
+| `weekday_mid` | Mon–Fri | 09:00–15:00 |
+| `weekday_pm` | Mon–Fri | 15:00–19:00 |
+| `weekday_eve` | Mon–Fri | 19:00–24:00 |
+| `saturday` | Saturday | Full day (same bounds as overall that day) |
+| `sunday` | Sunday | Full day |
+
+**Backfill:** After deploying `window_key`, re-run the headway job for existing service dates so non-`overall` rows exist (same as the `grain=route` backfill). Existing rows keep `overall` via the column default until re-run.
+
+Public APIs: `GET /api/v1/headways/{routes,routes/:id,system}?days=30&window=weekday_am` (default `window=overall`).
 
 * * *
 # Headway Daily Job

@@ -47,24 +47,33 @@ func TestHeadwayPublicListRoutes(t *testing.T) {
 	day2 := time.Date(2026, 7, 11, 0, 0, 0, 0, time.UTC)
 	_ = repo.InsertBatch(context.Background(), []business.HeadwaySummary{
 		{
-			ServiceDate: day1, Grain: business.HeadwayGrainRoute, Method: business.HeadwayMethodEqualStop,
+			ServiceDate: day1, WindowKey: business.HeadwayWindowOverall,
+			Grain: business.HeadwayGrainRoute, Method: business.HeadwayMethodEqualStop,
 			RouteID: "8", RouteName: "Halsted",
 			HeadwaySummaryStats: business.HeadwaySummaryStats{Count: 20, MeanMinutes: 10, MedianMinutes: 10, AvgWaitMinutes: 5, CV: 0.3},
 		},
 		{
-			ServiceDate: day2, Grain: business.HeadwayGrainRoute, Method: business.HeadwayMethodEqualStop,
+			ServiceDate: day2, WindowKey: business.HeadwayWindowOverall,
+			Grain: business.HeadwayGrainRoute, Method: business.HeadwayMethodEqualStop,
 			RouteID: "8", RouteName: "Halsted",
 			HeadwaySummaryStats: business.HeadwaySummaryStats{Count: 20, MeanMinutes: 12, MedianMinutes: 12, AvgWaitMinutes: 6, CV: 0.4},
 		},
 		{
-			ServiceDate: day2, Grain: business.HeadwayGrainRoute, Method: business.HeadwayMethodEqualStop,
+			ServiceDate: day2, WindowKey: business.HeadwayWindowOverall,
+			Grain: business.HeadwayGrainRoute, Method: business.HeadwayMethodEqualStop,
 			RouteID: "22", RouteName: "Clark",
 			HeadwaySummaryStats: business.HeadwaySummaryStats{Count: 15, MeanMinutes: 8, MedianMinutes: 8, AvgWaitMinutes: 4, CV: 0.2},
+		},
+		{
+			ServiceDate: day2, WindowKey: business.HeadwayWindowWeekdayAM,
+			Grain: business.HeadwayGrainRoute, Method: business.HeadwayMethodEqualStop,
+			RouteID: "8", RouteName: "Halsted",
+			HeadwaySummaryStats: business.HeadwaySummaryStats{Count: 5, MeanMinutes: 8, MedianMinutes: 8, AvgWaitMinutes: 4, CV: 0.1},
 		},
 	})
 
 	svc := app.NewHeadwayPublicService(repo)
-	routes, period, err := svc.ListRoutes(context.Background(), 30)
+	routes, period, err := svc.ListRoutes(context.Background(), 30, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +88,15 @@ func TestHeadwayPublicListRoutes(t *testing.T) {
 		t.Fatalf("expected route 8 first, got %s", routes[0].RouteID)
 	}
 
-	detail, err := svc.GetRoute(context.Background(), "8", 30)
+	amRoutes, _, err := svc.ListRoutes(context.Background(), 30, business.HeadwayWindowWeekdayAM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(amRoutes) != 1 || amRoutes[0].RouteID != "8" || amRoutes[0].Count != 5 {
+		t.Fatalf("weekday_am routes = %+v", amRoutes)
+	}
+
+	detail, err := svc.GetRoute(context.Background(), "8", 30, "")
 	if err != nil {
 		t.Fatal(err)
 	}

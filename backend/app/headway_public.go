@@ -72,9 +72,13 @@ func ResolvePeriodDays(days int) int {
 }
 
 // ListRoutes returns one period row per route (grain=route, equal_stop).
-func (s *HeadwayPublicService) ListRoutes(ctx context.Context, days int) ([]HeadwayRoutePeriod, HeadwayPeriodStats, error) {
+func (s *HeadwayPublicService) ListRoutes(ctx context.Context, days int, windowKey string) ([]HeadwayRoutePeriod, HeadwayPeriodStats, error) {
 	days = ResolvePeriodDays(days)
-	rows, periodMeta, err := s.loadGrainRows(ctx, business.HeadwayGrainRoute, "", days)
+	windowKey, err := ParseHeadwayWindowKey(windowKey)
+	if err != nil {
+		return nil, HeadwayPeriodStats{}, err
+	}
+	rows, periodMeta, err := s.loadGrainRows(ctx, business.HeadwayGrainRoute, "", days, windowKey)
 	if err != nil {
 		return nil, HeadwayPeriodStats{}, err
 	}
@@ -104,12 +108,16 @@ func (s *HeadwayPublicService) ListRoutes(ctx context.Context, days int) ([]Head
 }
 
 // GetRoute returns period stats and daily series for one route.
-func (s *HeadwayPublicService) GetRoute(ctx context.Context, routeID string, days int) (HeadwayRouteDetail, error) {
+func (s *HeadwayPublicService) GetRoute(ctx context.Context, routeID string, days int, windowKey string) (HeadwayRouteDetail, error) {
 	if routeID == "" {
 		return HeadwayRouteDetail{}, fmt.Errorf("route id required")
 	}
 	days = ResolvePeriodDays(days)
-	rows, periodMeta, err := s.loadGrainRows(ctx, business.HeadwayGrainRoute, routeID, days)
+	windowKey, err := ParseHeadwayWindowKey(windowKey)
+	if err != nil {
+		return HeadwayRouteDetail{}, err
+	}
+	rows, periodMeta, err := s.loadGrainRows(ctx, business.HeadwayGrainRoute, routeID, days, windowKey)
 	if err != nil {
 		return HeadwayRouteDetail{}, err
 	}
@@ -137,15 +145,19 @@ func (s *HeadwayPublicService) GetRoute(ctx context.Context, routeID string, day
 }
 
 // GetSystem returns network period stats, daily series, and top longest median routes.
-func (s *HeadwayPublicService) GetSystem(ctx context.Context, days int) (HeadwaySystemOverview, error) {
+func (s *HeadwayPublicService) GetSystem(ctx context.Context, days int, windowKey string) (HeadwaySystemOverview, error) {
 	days = ResolvePeriodDays(days)
-
-	dayRows, periodMeta, err := s.loadGrainRows(ctx, business.HeadwayGrainServiceDay, "", days)
+	windowKey, err := ParseHeadwayWindowKey(windowKey)
 	if err != nil {
 		return HeadwaySystemOverview{}, err
 	}
 
-	routes, _, err := s.ListRoutes(ctx, days)
+	dayRows, periodMeta, err := s.loadGrainRows(ctx, business.HeadwayGrainServiceDay, "", days, windowKey)
+	if err != nil {
+		return HeadwaySystemOverview{}, err
+	}
+
+	routes, _, err := s.ListRoutes(ctx, days, windowKey)
 	if err != nil {
 		return HeadwaySystemOverview{}, err
 	}
@@ -176,6 +188,7 @@ func (s *HeadwayPublicService) loadGrainRows(
 	ctx context.Context,
 	grain, routeID string,
 	days int,
+	windowKey string,
 ) ([]business.HeadwaySummary, HeadwayPeriodStats, error) {
 	empty := HeadwayPeriodStats{}
 	if s.summaries == nil {
@@ -184,11 +197,12 @@ func (s *HeadwayPublicService) loadGrainRows(
 
 	// Pull recent equal_stop rows; period is the N most recent distinct service dates.
 	rows, err := s.summaries.List(ctx, HeadwaySummaryFilter{
-		Grain:   grain,
-		Method:  business.HeadwayMethodEqualStop,
-		RouteID: routeID,
-		SortAsc: false,
-		Limit:   10_000,
+		WindowKey: windowKey,
+		Grain:     grain,
+		Method:    business.HeadwayMethodEqualStop,
+		RouteID:   routeID,
+		SortAsc:   false,
+		Limit:     10_000,
 	})
 	if err != nil {
 		return nil, empty, err

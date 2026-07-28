@@ -34,6 +34,29 @@ export const formatHeadwayPeriod = (start?: string, end?: string, daysWithData?:
   return `${start} → ${end}`
 }
 
+export type HeadwayWindowKey =
+  | 'overall'
+  | 'weekday_am'
+  | 'weekday_mid'
+  | 'weekday_pm'
+  | 'weekday_eve'
+  | 'saturday'
+  | 'sunday'
+
+export const HEADWAY_WINDOW_OPTIONS: { key: HeadwayWindowKey; label: string }[] = [
+  { key: 'overall', label: 'Overall' },
+  { key: 'weekday_am', label: 'Weekday AM' },
+  { key: 'weekday_mid', label: 'Midday' },
+  { key: 'weekday_pm', label: 'PM' },
+  { key: 'weekday_eve', label: 'Evening' },
+  { key: 'saturday', label: 'Saturday' },
+  { key: 'sunday', label: 'Sunday' },
+]
+
+export const headwayWindowLabel = (key: HeadwayWindowKey) =>
+  HEADWAY_WINDOW_OPTIONS.find(o => o.key === key)?.label ?? key
+
+
 export interface HeadwayRankInfo {
   rank: number
   total: number

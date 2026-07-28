@@ -48,6 +48,7 @@ type HeadwayRoutesListResponse struct {
 	Routes []HeadwayRoutePeriodResponse `json:"routes"`
 	Method string                      `json:"method"`
 	Grain  string                      `json:"grain"`
+	Window string                      `json:"window"`
 	Days   int                         `json:"days"`
 }
 
@@ -56,6 +57,7 @@ type HeadwayRouteDetailResponse struct {
 	Series []HeadwayDayPointResponse  `json:"series"`
 	Method string                     `json:"method"`
 	Grain  string                     `json:"grain"`
+	Window string                     `json:"window"`
 	Days   int                        `json:"days"`
 }
 
@@ -65,12 +67,18 @@ type HeadwaySystemResponse struct {
 	ShortestHeadways []HeadwayRoutePeriodResponse `json:"shortestHeadways"`
 	Method           string                       `json:"method"`
 	Grain            string                       `json:"grain"`
+	Window           string                       `json:"window"`
 	Days             int                          `json:"days"`
 }
 
 func (a *API) handleGetHeadwayRoutes(c *gin.Context) {
 	days := parseHeadwayDays(c)
-	routes, period, err := a.headwayPublic.ListRoutes(c.Request.Context(), days)
+	window, err := app.ParseHeadwayWindowKey(c.Query("window"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	routes, period, err := a.headwayPublic.ListRoutes(c.Request.Context(), days, window)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -80,6 +88,7 @@ func (a *API) handleGetHeadwayRoutes(c *gin.Context) {
 		Routes: toRoutePeriodResponses(routes),
 		Method: "equal_stop",
 		Grain:  "route",
+		Window: window,
 		Days:   app.ResolvePeriodDays(days),
 	})
 }
@@ -87,7 +96,12 @@ func (a *API) handleGetHeadwayRoutes(c *gin.Context) {
 func (a *API) handleGetHeadwayRoute(c *gin.Context) {
 	routeID := c.Param("externalId")
 	days := parseHeadwayDays(c)
-	detail, err := a.headwayPublic.GetRoute(c.Request.Context(), routeID, days)
+	window, err := app.ParseHeadwayWindowKey(c.Query("window"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	detail, err := a.headwayPublic.GetRoute(c.Request.Context(), routeID, days, window)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -97,13 +111,19 @@ func (a *API) handleGetHeadwayRoute(c *gin.Context) {
 		Series: toDayPointResponses(detail.Series),
 		Method: "equal_stop",
 		Grain:  "route",
+		Window: window,
 		Days:   app.ResolvePeriodDays(days),
 	})
 }
 
 func (a *API) handleGetHeadwaySystem(c *gin.Context) {
 	days := parseHeadwayDays(c)
-	overview, err := a.headwayPublic.GetSystem(c.Request.Context(), days)
+	window, err := app.ParseHeadwayWindowKey(c.Query("window"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	overview, err := a.headwayPublic.GetSystem(c.Request.Context(), days, window)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -114,6 +134,7 @@ func (a *API) handleGetHeadwaySystem(c *gin.Context) {
 		ShortestHeadways: toRoutePeriodResponses(overview.ShortestHeadways),
 		Method:           "equal_stop",
 		Grain:            "service_day",
+		Window:           window,
 		Days:             app.ResolvePeriodDays(days),
 	})
 }

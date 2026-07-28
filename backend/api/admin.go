@@ -325,6 +325,7 @@ func (a *API) handleAdminListHeadwaySummaries(c *gin.Context) {
 	limit := parseIntQuery(c, "limit", 50, 200)
 	offset := parseIntQuery(c, "offset", 0, 1_000_000)
 	filter := app.HeadwaySummaryFilter{
+		WindowKey: c.Query("window"),
 		Grain:     c.Query("grain"),
 		Method:    c.Query("method"),
 		RouteID:   c.Query("route"),
@@ -352,6 +353,7 @@ func (a *API) handleAdminListHeadwaySummaries(c *gin.Context) {
 
 	total, err := a.headwaySummaryRepo.Count(c.Request.Context(), app.HeadwaySummaryFilter{
 		ServiceDate: filter.ServiceDate,
+		WindowKey:   filter.WindowKey,
 		Grain:       filter.Grain,
 		Method:      filter.Method,
 		RouteID:     filter.RouteID,
@@ -378,6 +380,7 @@ func (a *API) handleAdminListHeadwaySummaries(c *gin.Context) {
 func toHeadwaySummaryRowResponse(s business.HeadwaySummary) HeadwaySummaryRowResponse {
 	return HeadwaySummaryRowResponse{
 		ServiceDate:    s.ServiceDate.UTC().Format("2006-01-02"),
+		WindowKey:      s.WindowKey,
 		Grain:          s.Grain,
 		Method:         s.Method,
 		StopID:         s.StopID,

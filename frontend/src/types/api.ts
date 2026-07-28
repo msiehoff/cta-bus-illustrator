@@ -162,6 +162,7 @@ export interface HeadwaySummaryResponse {
 
 export interface HeadwaySummaryRow {
   serviceDate: string
+  windowKey?: string
   grain: string
   method: string
   stopId?: string
@@ -216,6 +217,7 @@ export interface HeadwayRoutesListResponse {
   routes: HeadwayRoutePeriod[]
   method: string
   grain: string
+  window: string
   days: number
 }
 
@@ -224,6 +226,7 @@ export interface HeadwayRouteDetailResponse {
   series: HeadwayDayPoint[]
   method: string
   grain: string
+  window: string
   days: number
 }
 
@@ -233,6 +236,7 @@ export interface HeadwaySystemResponse {
   shortestHeadways: HeadwayRoutePeriod[]
   method: string
   grain: string
+  window: string
   days: number
 }
 

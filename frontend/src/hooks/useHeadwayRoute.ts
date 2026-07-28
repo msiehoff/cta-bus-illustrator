@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { HeadwayRouteDetailResponse } from '../types/api'
+import type { HeadwayWindowKey } from '../lib/headwayUtils'
 
 const DEFAULT_DAYS = 30
 
-export const useHeadwayRoute = (externalId: string, days = DEFAULT_DAYS) => {
+export const useHeadwayRoute = (
+  externalId: string,
+  days = DEFAULT_DAYS,
+  window: HeadwayWindowKey = 'overall',
+) => {
   const [data, setData] = useState<HeadwayRouteDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -15,8 +20,9 @@ export const useHeadwayRoute = (externalId: string, days = DEFAULT_DAYS) => {
       setLoading(true)
       setError(null)
       try {
+        const params = new URLSearchParams({ days: String(days), window })
         const res = await fetch(
-          `/api/v1/headways/routes/${encodeURIComponent(externalId)}?days=${days}`,
+          `/api/v1/headways/routes/${encodeURIComponent(externalId)}?${params}`,
         )
         if (!res.ok) throw new Error(`Failed to load route headways (${res.status})`)
         const json = (await res.json()) as HeadwayRouteDetailResponse
@@ -31,7 +37,7 @@ export const useHeadwayRoute = (externalId: string, days = DEFAULT_DAYS) => {
     return () => {
       cancelled = true
     }
-  }, [externalId, days])
+  }, [externalId, days, window])
 
   return { data, loading, error }
 }

@@ -125,7 +125,11 @@ func (r *HeadwayRollup) execute(ctx context.Context, serviceDate, start, end tim
 		return executeResult{}, fmt.Errorf("insert headways: %w", err)
 	}
 
-	summaries := BuildPersistedSummaries(observed, serviceDate, start, end)
+	summaries := make([]business.HeadwaySummary, 0)
+	for _, spec := range WindowsForServiceDate(serviceDate) {
+		gaps := FilterHeadwaysByWindow(observed, spec)
+		summaries = append(summaries, BuildPersistedSummaries(gaps, serviceDate, spec.Start, spec.End, spec.Key)...)
+	}
 	if _, err := r.summaries.DeleteForServiceDate(ctx, serviceDate); err != nil {
 		return executeResult{}, fmt.Errorf("delete existing summaries: %w", err)
 	}
@@ -200,6 +204,9 @@ func (r *HeadwayRollup) LoadStoredSummary(ctx context.Context, filter HeadwaySum
 	if r.summaries == nil {
 		return business.HeadwaySummaryStats{}, business.HeadwaySummaryStats{}, nil, false, nil
 	}
+	if filter.WindowKey == "" {
+		filter.WindowKey = business.HeadwayWindowOverall
+	}
 
 	stopFilter := filter
 	stopFilter.Grain = business.HeadwayGrainStop
@@ -247,6 +254,7 @@ func resolveStoredOverall(
 	if filter.RouteID != "" && filter.Direction != "" {
 		rows, err := repo.List(ctx, HeadwaySummaryFilter{
 			ServiceDate: filter.ServiceDate,
+			WindowKey:   filter.WindowKey,
 			Grain:       business.HeadwayGrainRouteDirection,
 			RouteID:     filter.RouteID,
 			Direction:   filter.Direction,
@@ -270,6 +278,7 @@ func resolveStoredOverall(
 	if filter.RouteID == "" && filter.Direction == "" && filter.Stop == "" && filter.StopID == "" {
 		rows, err := repo.List(ctx, HeadwaySummaryFilter{
 			ServiceDate: filter.ServiceDate,
+			WindowKey:   filter.WindowKey,
 			Grain:       business.HeadwayGrainServiceDay,
 			Limit:       50,
 		})

@@ -4,6 +4,7 @@ import { adminFetch, ADMIN_API_BASE } from '../lib/adminApi'
 
 export interface HeadwaySummaryListFilters {
   date?: string
+  window?: string
   grain?: string
   method?: string
   route?: string
@@ -27,6 +28,7 @@ export const useHeadwaySummaries = (filters: HeadwaySummaryListFilters) => {
       try {
         const params = new URLSearchParams()
         if (filters.date) params.set('date', filters.date)
+        if (filters.window) params.set('window', filters.window)
         if (filters.grain) params.set('grain', filters.grain)
         if (filters.method) params.set('method', filters.method)
         if (filters.route) params.set('route', filters.route)
@@ -58,6 +60,7 @@ export const useHeadwaySummaries = (filters: HeadwaySummaryListFilters) => {
     }
   }, [
     filters.date,
+    filters.window,
     filters.grain,
     filters.method,
     filters.route,

@@ -17,7 +17,19 @@ const GRAIN_OPTIONS = [
   { value: '', label: 'All grains' },
   { value: 'stop', label: 'stop' },
   { value: 'route_direction', label: 'route_direction' },
+  { value: 'route', label: 'route' },
   { value: 'service_day', label: 'service_day' },
+]
+
+const WINDOW_OPTIONS = [
+  { value: '', label: 'All windows' },
+  { value: 'overall', label: 'overall' },
+  { value: 'weekday_am', label: 'weekday_am' },
+  { value: 'weekday_mid', label: 'weekday_mid' },
+  { value: 'weekday_pm', label: 'weekday_pm' },
+  { value: 'weekday_eve', label: 'weekday_eve' },
+  { value: 'saturday', label: 'saturday' },
+  { value: 'sunday', label: 'sunday' },
 ]
 
 const METHOD_OPTIONS = [
@@ -28,6 +40,7 @@ const METHOD_OPTIONS = [
 
 const AdminHeadwaySummaries = () => {
   const [date, setDate] = useState('')
+  const [windowKey, setWindowKey] = useState('overall')
   const [grain, setGrain] = useState('stop')
   const [method, setMethod] = useState('')
   const [route, setRoute] = useState('')
@@ -39,6 +52,7 @@ const AdminHeadwaySummaries = () => {
 
   const { data, loading, error } = useHeadwaySummaries({
     date,
+    window: windowKey,
     grain,
     method,
     route,
@@ -60,6 +74,7 @@ const AdminHeadwaySummaries = () => {
   }
 
   const clearFilters = () => {
+    setWindowKey('overall')
     setGrain('stop')
     setMethod('')
     setRoute('')
@@ -68,7 +83,7 @@ const AdminHeadwaySummaries = () => {
     resetOffset()
   }
 
-  const hasClearable = grain !== 'stop' || method || route || direction || stop
+  const hasClearable = windowKey !== 'overall' || grain !== 'stop' || method || route || direction || stop
 
   return (
     <div className="space-y-6">
@@ -91,6 +106,23 @@ const AdminHeadwaySummaries = () => {
             }}
             className={twMerge(filterInputClass, 'w-40')}
           />
+        </label>
+        <label className="text-sm text-gray-400">
+          Window
+          <select
+            value={windowKey}
+            onChange={e => {
+              setWindowKey(e.target.value)
+              resetOffset()
+            }}
+            className={twMerge(filterInputClass, 'w-44')}
+          >
+            {WINDOW_OPTIONS.map(opt => (
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="text-sm text-gray-400">
           Grain
@@ -199,6 +231,7 @@ const AdminHeadwaySummaries = () => {
                     <span className="text-xs text-gray-500">{sortAsc ? '↑' : '↓'}</span>
                   </button>
                 </th>
+                <th className="px-4 py-3 text-left font-medium">Window</th>
                 <th className="px-4 py-3 text-left font-medium">Grain</th>
                 <th className="px-4 py-3 text-left font-medium">Method</th>
                 <th className="px-4 py-3 text-left font-medium">Route</th>
@@ -214,7 +247,7 @@ const AdminHeadwaySummaries = () => {
             <tbody>
               {loading && !data ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
                     Loading summaries…
                   </td>
                 </tr>
@@ -223,7 +256,7 @@ const AdminHeadwaySummaries = () => {
                   const stopLabel = s.stopName || s.stopId
                   return (
                     <tr
-                      key={`${s.serviceDate}-${s.grain}-${s.method}-${s.routeId}-${s.direction}-${s.stopId}`}
+                      key={`${s.serviceDate}-${s.windowKey}-${s.grain}-${s.method}-${s.routeId}-${s.direction}-${s.stopId}`}
                       className="border-t border-gray-800"
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -233,6 +266,18 @@ const AdminHeadwaySummaries = () => {
                           onSelect={setFilter(setDate)}
                           className="text-gray-300"
                         />
+                      </td>
+                      <td className="px-4 py-3">
+                        {s.windowKey ? (
+                          <FilterValue
+                            value={s.windowKey}
+                            active={windowKey === s.windowKey}
+                            onSelect={setFilter(setWindowKey)}
+                            className="text-gray-300"
+                          />
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <FilterValue
@@ -304,7 +349,7 @@ const AdminHeadwaySummaries = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
                     No summaries yet. Run a headway job first.
                   </td>
                 </tr>
