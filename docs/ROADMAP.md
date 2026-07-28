@@ -14,6 +14,9 @@ The goal is to A ridership overlay is a way to combine two different datasets on
 - 25k, slow, huge
 = 10k, slow, moderate
 
+## Infra / DX
+4. **Deploy automation** — GitHub Actions for ECR + App Runner (API) and S3 + CloudFront (web), OIDC auth, deploy on `main` + manual dispatch. Spec: [DEPLOY_AUTOMATION.md](./DEPLOY_AUTOMATION.md). Not implemented yet.
+
 ## Possible Future Enhancements
 Scheduled vs actual frequency
 corridor congestion analysis
