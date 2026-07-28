@@ -263,6 +263,9 @@ func (r *HeadwaySummaryRepo) filtered(filter app.HeadwaySummaryFilter) []busines
 				continue
 			}
 		}
+		if filter.WindowKey != "" && s.WindowKey != filter.WindowKey {
+			continue
+		}
 		if filter.Grain != "" && s.Grain != filter.Grain {
 			continue
 		}

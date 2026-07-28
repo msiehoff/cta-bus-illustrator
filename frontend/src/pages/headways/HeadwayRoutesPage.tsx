@@ -1,11 +1,18 @@
 import { useState } from 'react'
 import { useHeadwayRoutes } from '../../hooks/useHeadwayRoutes'
 import HeadwayRoutesTable from '../../components/HeadwayRoutesTable'
-import { formatHeadwayPeriod } from '../../lib/headwayUtils'
+import HeadwayWindowFilter from '../../components/HeadwayWindowFilter'
+import {
+  formatHeadwayPeriod,
+  headwayWindowLabel,
+  type HeadwayWindowKey,
+} from '../../lib/headwayUtils'
 
 const HeadwayRoutesPage = () => {
-  const { data, loading, error } = useHeadwayRoutes(30)
+  const [window, setWindow] = useState<HeadwayWindowKey>('overall')
+  const { data, loading, error } = useHeadwayRoutes(30, window)
   const [search, setSearch] = useState('')
+  const windowLabel = headwayWindowLabel(window)
 
   const periodLabel = data
     ? formatHeadwayPeriod(
@@ -20,12 +27,13 @@ const HeadwayRoutesPage = () => {
       <div className="mb-5">
         <h1 className="text-xl font-semibold text-white">Headway · Routes</h1>
         <p className="text-sm text-gray-400 mt-0.5">
-          Both directions · equal-stop weighting
+          Both directions · equal-stop weighting · {windowLabel}
           {periodLabel ? ` · ${periodLabel}` : ''}
           {data?.period.daysWithData
             ? ` · ${data.period.daysWithData} service day${data.period.daysWithData === 1 ? '' : 's'}`
             : ''}
         </p>
+        <HeadwayWindowFilter value={window} onChange={setWindow} className="mt-3" />
       </div>
 
       {error && (
@@ -42,8 +50,8 @@ const HeadwayRoutesPage = () => {
       />
 
       <p className="text-[10px] text-gray-600 mt-3">
-        Period uses up to the last 30 available service days with headway summaries.
-        Median, wait, and consistency are observation-weighted across those days.
+        Period uses up to the last 30 available service days with headway summaries for the selected
+        window. Median, wait, and consistency are observation-weighted across those days.
       </p>
     </div>
   )

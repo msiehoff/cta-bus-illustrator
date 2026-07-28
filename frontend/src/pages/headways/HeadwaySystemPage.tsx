@@ -1,33 +1,40 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useHeadwaySystem } from '../../hooks/useHeadwaySystem'
 import StatCard from '../../components/StatCard'
 import HeadwayDailyChart from '../../components/HeadwayDailyChart'
+import HeadwayWindowFilter from '../../components/HeadwayWindowFilter'
 import {
   formatHeadwayCV,
   formatHeadwayMinutes,
   formatHeadwayPeriod,
   describeHeadwayConsistency,
+  headwayWindowLabel,
   HEADWAY_CONSISTENCY_LABEL,
   HEADWAY_CONSISTENCY_TOOLTIP,
+  type HeadwayWindowKey,
 } from '../../lib/headwayUtils'
 
 const HeadwaySystemPage = () => {
-  const { data, loading, error } = useHeadwaySystem(30)
+  const [window, setWindow] = useState<HeadwayWindowKey>('overall')
+  const { data, loading, error } = useHeadwaySystem(30, window)
   const period = data?.period
   const periodLabel = period
     ? formatHeadwayPeriod(period.periodStart, period.periodEnd, period.daysWithData)
     : null
+  const windowLabel = headwayWindowLabel(window)
 
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto">
       <div className="mb-5">
         <h1 className="text-xl font-semibold text-white">Headway · System</h1>
         <p className="text-sm text-gray-400 mt-0.5">
-          Network service frequency
+          Network service frequency · {windowLabel}
           {periodLabel
             ? ` · up to last 30 available days (${periodLabel})`
             : ' · up to last 30 available service days'}
         </p>
+        <HeadwayWindowFilter value={window} onChange={setWindow} className="mt-3" />
       </div>
 
       {error && (
@@ -46,6 +53,7 @@ const HeadwaySystemPage = () => {
             Across {period.daysWithData} available service day
             {period.daysWithData === 1 ? '' : 's'}
             {periodLabel ? ` · ${periodLabel}` : ''}
+            {` · ${windowLabel}`}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <StatCard
@@ -69,14 +77,14 @@ const HeadwaySystemPage = () => {
 
       {!loading && (!period || period.daysWithData === 0) && !error && (
         <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-10 text-center text-sm text-gray-500 mb-5">
-          No system headway summaries yet. Run a daily headway job first.
+          No system headway summaries yet for this window. Run a daily headway job first.
         </div>
       )}
 
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-1">Network daily trend</h2>
         <p className="text-xs text-gray-500 mb-4">
-          Equal-stop · all routes · up to last 30 service days
+          Equal-stop · all routes · {windowLabel} · up to last 30 service days
         </p>
         {!loading && <HeadwayDailyChart series={data?.series ?? []} />}
       </div>
@@ -84,7 +92,7 @@ const HeadwaySystemPage = () => {
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-1">Shortest median headways</h2>
         <p className="text-xs text-gray-500 mb-4">
-          Lowest period medians
+          Lowest period medians · {windowLabel}
           {period?.daysWithData
             ? ` · across ${period.daysWithData} available service day${period.daysWithData === 1 ? '' : 's'}`
             : ''}

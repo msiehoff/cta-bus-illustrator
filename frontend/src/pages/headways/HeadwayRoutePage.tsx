@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useHeadwayRoute } from '../../hooks/useHeadwayRoute'
 import { useHeadwayRoutes } from '../../hooks/useHeadwayRoutes'
@@ -7,13 +8,16 @@ import StatCard from '../../components/StatCard'
 import HeadwayDailyChart from '../../components/HeadwayDailyChart'
 import HeadwayContextPanel from '../../components/HeadwayContextPanel'
 import HeadwayDistributionChart from '../../components/HeadwayDistributionChart'
+import HeadwayWindowFilter from '../../components/HeadwayWindowFilter'
 import {
   formatHeadwayCV,
   formatHeadwayMinutes,
   formatHeadwayPeriod,
   describeHeadwayConsistency,
+  headwayWindowLabel,
   HEADWAY_CONSISTENCY_LABEL,
   HEADWAY_CONSISTENCY_TOOLTIP,
+  type HeadwayWindowKey,
 } from '../../lib/headwayUtils'
 
 const PERIOD_DAYS = 30
@@ -21,10 +25,12 @@ const PERIOD_DAYS = 30
 const HeadwayRoutePage = () => {
   const { externalId = '' } = useParams<{ externalId: string }>()
   const navigate = useNavigate()
-  const { data, loading, error } = useHeadwayRoute(externalId, PERIOD_DAYS)
-  const { data: routesData } = useHeadwayRoutes(PERIOD_DAYS)
-  const { data: systemData } = useHeadwaySystem(PERIOD_DAYS)
+  const [window, setWindow] = useState<HeadwayWindowKey>('overall')
+  const { data, loading, error } = useHeadwayRoute(externalId, PERIOD_DAYS, window)
+  const { data: routesData } = useHeadwayRoutes(PERIOD_DAYS, window)
+  const { data: systemData } = useHeadwaySystem(PERIOD_DAYS, window)
   const fallbackName = useRouteName(externalId)
+  const windowLabel = headwayWindowLabel(window)
 
   const route = data?.route
   const routeName = route?.routeName || fallbackName
@@ -49,7 +55,7 @@ const HeadwayRoutePage = () => {
         Back
       </button>
 
-      <div className="flex items-start justify-between gap-4 mb-5">
+      <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex items-center gap-4">
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-900 text-blue-200 text-lg font-bold shrink-0">
             {externalId}
@@ -57,7 +63,7 @@ const HeadwayRoutePage = () => {
           <div>
             <h1 className="text-xl font-semibold text-white">{routeName}</h1>
             <p className="text-sm text-gray-400 mt-0.5">
-              Headways · both directions
+              Headways · both directions · {windowLabel}
               {periodLabel ? ` · ${periodLabel}` : ''}
             </p>
           </div>
@@ -69,6 +75,8 @@ const HeadwayRoutePage = () => {
           Ridership for this route →
         </Link>
       </div>
+
+      <HeadwayWindowFilter value={window} onChange={setWindow} className="mb-5" />
 
       {error && (
         <div className="mb-4 text-sm text-red-400 bg-red-950/40 border border-red-900 rounded-lg px-4 py-3">
@@ -86,6 +94,7 @@ const HeadwayRoutePage = () => {
             Across {route.daysWithData} available service day
             {route.daysWithData === 1 ? '' : 's'}
             {periodLabel ? ` · ${periodLabel}` : ''}
+            {` · ${windowLabel}`}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <StatCard
@@ -109,14 +118,14 @@ const HeadwayRoutePage = () => {
 
       {!loading && (!route || route.daysWithData === 0) && !error && (
         <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-10 text-center text-sm text-gray-500 mb-5">
-          No headway summaries for this route yet.
+          No headway summaries for this route and window yet.
         </div>
       )}
 
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
         <h2 className="text-sm font-medium text-white mb-1">Daily series</h2>
         <p className="text-xs text-gray-500 mb-4">
-          Equal-stop · both directions · up to last 30 service days with data
+          Equal-stop · both directions · {windowLabel} · up to last 30 service days with data
         </p>
         {loading ? (
           <div className="text-gray-500 text-sm py-10 text-center">Loading…</div>
@@ -141,7 +150,7 @@ const HeadwayRoutePage = () => {
         <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 mb-5">
           <h2 className="text-sm font-medium text-white mb-1">Where this route falls</h2>
           <p className="text-xs text-gray-500 mb-2">
-            Network median headway distribution
+            Network median headway distribution · {windowLabel}
             {periodLabel ? ` · ${periodLabel}` : ''}
           </p>
           <HeadwayDistributionChart

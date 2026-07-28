@@ -52,6 +52,7 @@ type HeadwaySummaryFilter struct {
 	ServiceDate time.Time
 	From        *time.Time // inclusive service_date lower bound
 	To          *time.Time // inclusive service_date upper bound
+	WindowKey   string     // overall | weekday_am | … ; empty = any
 	Grain       string
 	Method      string
 	RouteID     string

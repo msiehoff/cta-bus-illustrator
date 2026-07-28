@@ -18,12 +18,14 @@ func TestPublicHeadwayRoutes(t *testing.T) {
 	day := time.Date(2026, 7, 11, 0, 0, 0, 0, time.UTC)
 	_ = repo.InsertBatch(context.Background(), []business.HeadwaySummary{
 		{
-			ServiceDate: day, Grain: business.HeadwayGrainRoute, Method: business.HeadwayMethodEqualStop,
+			ServiceDate: day, WindowKey: business.HeadwayWindowOverall,
+			Grain: business.HeadwayGrainRoute, Method: business.HeadwayMethodEqualStop,
 			RouteID: "8", RouteName: "Halsted",
 			HeadwaySummaryStats: business.HeadwaySummaryStats{Count: 20, MedianMinutes: 11, AvgWaitMinutes: 5.5, CV: 0.35, MeanMinutes: 11},
 		},
 		{
-			ServiceDate: day, Grain: business.HeadwayGrainServiceDay, Method: business.HeadwayMethodEqualStop,
+			ServiceDate: day, WindowKey: business.HeadwayWindowOverall,
+			Grain: business.HeadwayGrainServiceDay, Method: business.HeadwayMethodEqualStop,
 			HeadwaySummaryStats: business.HeadwaySummaryStats{Count: 100, MedianMinutes: 10, AvgWaitMinutes: 5, CV: 0.3, MeanMinutes: 10},
 		},
 	})
@@ -46,6 +48,16 @@ func TestPublicHeadwayRoutes(t *testing.T) {
 	}
 	if len(list.Routes) != 1 || list.Routes[0].RouteID != "8" {
 		t.Fatalf("unexpected routes: %+v", list.Routes)
+	}
+	if list.Window != business.HeadwayWindowOverall {
+		t.Fatalf("window = %q", list.Window)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/headways/routes?days=30&window=nope", nil)
+	w = httptest.NewRecorder()
+	a.router.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("invalid window status = %d", w.Code)
 	}
 
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/headways/routes/8?days=30", nil)

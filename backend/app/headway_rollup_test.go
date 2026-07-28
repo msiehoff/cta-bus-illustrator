@@ -63,9 +63,12 @@ func TestBuildPersistedSummaries(t *testing.T) {
 	serviceDate := time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC)
 	start, end := app.ServiceDateBounds(serviceDate)
 
-	got := app.BuildPersistedSummaries(headways, serviceDate, start, end)
+	got := app.BuildPersistedSummaries(headways, serviceDate, start, end, business.HeadwayWindowOverall)
 	var stops, routeDir, routes, serviceDay int
 	for _, s := range got {
+		if s.WindowKey != business.HeadwayWindowOverall {
+			t.Fatalf("window_key = %q", s.WindowKey)
+		}
 		switch s.Grain {
 		case business.HeadwayGrainStop:
 			stops++

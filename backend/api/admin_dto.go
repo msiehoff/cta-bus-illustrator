@@ -110,6 +110,7 @@ type HeadwaySummaryResponse struct {
 
 type HeadwaySummaryRowResponse struct {
 	ServiceDate    string  `json:"serviceDate"`
+	WindowKey      string  `json:"windowKey"`
 	Grain          string  `json:"grain"`
 	Method         string  `json:"method"`
 	StopID         string  `json:"stopId,omitempty"`

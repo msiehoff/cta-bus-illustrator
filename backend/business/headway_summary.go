@@ -11,6 +11,15 @@ const (
 
 	HeadwayMethodPooled    = "pooled"
 	HeadwayMethodEqualStop = "equal_stop"
+
+	// Temporal window keys (America/Chicago clock slices).
+	HeadwayWindowOverall    = "overall"
+	HeadwayWindowWeekdayAM  = "weekday_am"
+	HeadwayWindowWeekdayMid = "weekday_mid"
+	HeadwayWindowWeekdayPM  = "weekday_pm"
+	HeadwayWindowWeekdayEve = "weekday_eve"
+	HeadwayWindowSaturday   = "saturday"
+	HeadwayWindowSunday     = "sunday"
 )
 
 // HeadwaySummaryStats is aggregate metrics over a set of observed headway gaps.
@@ -33,11 +42,12 @@ type HeadwayStopSummary struct {
 	HeadwaySummaryStats
 }
 
-// HeadwaySummary is a persisted aggregate for a service date, grain, and method.
+// HeadwaySummary is a persisted aggregate for a service date, window, grain, and method.
 type HeadwaySummary struct {
 	ServiceDate time.Time
 	WindowStart time.Time
 	WindowEnd   time.Time
+	WindowKey   string // overall | weekday_am | … — temporal slice
 	Grain       string
 	Method      string
 	StopID      string

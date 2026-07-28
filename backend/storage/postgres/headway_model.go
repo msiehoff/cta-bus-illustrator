@@ -44,6 +44,7 @@ type headwaySummaryModel struct {
 	ServiceDate       time.Time `gorm:"column:service_date;type:date;not null"`
 	WindowStart       time.Time `gorm:"column:window_start;not null"`
 	WindowEnd         time.Time `gorm:"column:window_end;not null"`
+	WindowKey         string    `gorm:"column:window_key;not null;default:'overall'"`
 	Grain             string    `gorm:"not null"`
 	Method            string    `gorm:"not null"`
 	StopID            string    `gorm:"column:stop_id;not null;default:''"`
