@@ -3,7 +3,8 @@
 # into the deployed API, then refresh route segments.
 #
 # Required env vars:
-# - APP_URL   Base API URL, e.g. https://your-api-host.example.com
+# - RIDERSHIP_API_URL   Backend API origin base URL (not the public CDN/site host),
+#                       e.g. https://your-api-host.example.com
 #
 # Optional env vars:
 # - SODATA_DATASET_ID   SoDota view id (default: bynn-gwxy)
@@ -17,20 +18,20 @@
 # After a successful import, writes the new stamp so CI cache can persist it.
 set -euo pipefail
 
-APP_URL="${APP_URL:-}"
+RIDERSHIP_API_URL="${RIDERSHIP_API_URL:-}"
 SODATA_DATASET_ID="${SODATA_DATASET_ID:-bynn-gwxy}"
 SODATA_DOMAIN="${SODATA_DOMAIN:-data.cityofchicago.org}"
 FORCE_IMPORT="${FORCE_IMPORT:-false}"
 STAMP_DIR="${STAMP_DIR:-.ridership-dataset-stamp}"
 CURL_MAX_TIME="${CURL_MAX_TIME:-600}"
 
-if [[ -z "${APP_URL}" ]]; then
-  echo "APP_URL is required (API base URL)" >&2
+if [[ -z "${RIDERSHIP_API_URL}" ]]; then
+  echo "RIDERSHIP_API_URL is required (API origin base URL)" >&2
   exit 1
 fi
 
 # Trim trailing slash for consistent path joining.
-APP_URL="${APP_URL%/}"
+RIDERSHIP_API_URL="${RIDERSHIP_API_URL%/}"
 
 META_URL="https://${SODATA_DOMAIN}/api/views/${SODATA_DATASET_ID}.json"
 CSV_URL="https://${SODATA_DOMAIN}/api/views/${SODATA_DATASET_ID}/rows.csv?accessType=DOWNLOAD"
@@ -121,12 +122,12 @@ for col in route routename Month_Beginning Avg_Weekday_Rides Avg_Saturday_Rides 
 done
 echo "CSV OK ($(wc -l <"${CSV_TMP}" | tr -d ' ') lines including header)"
 
-echo "POST ${APP_URL}/api/v1/ridership/import"
-curl_api POST "${APP_URL}/api/v1/ridership/import" \
+echo "POST ${RIDERSHIP_API_URL}/api/v1/ridership/import"
+curl_api POST "${RIDERSHIP_API_URL}/api/v1/ridership/import" \
   -F "file=@${CSV_TMP};type=text/csv;filename=cta-ridership.csv"
 
-echo "POST ${APP_URL}/api/v1/routes/import-segments"
-curl_api POST "${APP_URL}/api/v1/routes/import-segments"
+echo "POST ${RIDERSHIP_API_URL}/api/v1/routes/import-segments"
+curl_api POST "${RIDERSHIP_API_URL}/api/v1/routes/import-segments"
 
 mkdir -p "${STAMP_DIR}"
 printf '%s\n' "${ROWS_UPDATED_AT}" >"${STAMP_FILE}"

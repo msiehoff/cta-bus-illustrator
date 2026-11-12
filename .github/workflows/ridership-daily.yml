@@ -20,19 +20,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Resolve APP_URL
+      - name: Resolve RIDERSHIP_API_URL
         id: config
         env:
-          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
+          # Backend origin that accepts large multipart uploads. Do not use the
+          # public CDN/site host (CloudFront 403s ~2MB CSV POSTs).
+          RIDERSHIP_API_URL: ${{ secrets.RIDERSHIP_API_URL }}
         run: |
           set -euo pipefail
-          if [ -z "${APP_URL:-}" ]; then
-            echo "APP_URL is required: set repository variable or secret APP_URL" >&2
+          if [ -z "${RIDERSHIP_API_URL:-}" ]; then
+            echo "RIDERSHIP_API_URL secret is required (API origin base URL for imports)" >&2
             exit 1
           fi
           # Log host only — never echo the full URL if it ever embeds credentials.
-          python3 -c 'import os,urllib.parse; print("Using APP_URL host:", urllib.parse.urlparse(os.environ["APP_URL"]).netloc)'
-          echo "app_url=${APP_URL}" >> "${GITHUB_OUTPUT}"
+          python3 -c 'import os,urllib.parse; print("Using RIDERSHIP_API_URL host:", urllib.parse.urlparse(os.environ["RIDERSHIP_API_URL"]).netloc)'
+          echo "ridership_api_url=${RIDERSHIP_API_URL}" >> "${GITHUB_OUTPUT}"
 
       - name: Restore SoDota import stamp
         uses: actions/cache/restore@v4
@@ -44,7 +46,7 @@ jobs:
 
       - name: Import ridership + route segments
         env:
-          APP_URL: ${{ steps.config.outputs.app_url }}
+          RIDERSHIP_API_URL: ${{ steps.config.outputs.ridership_api_url }}
           FORCE_IMPORT: ${{ inputs.force == true && 'true' || 'false' }}
           STAMP_DIR: .ridership-dataset-stamp
         run: |
