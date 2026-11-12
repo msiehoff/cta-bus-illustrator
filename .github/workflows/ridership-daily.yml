@@ -1,0 +1,60 @@
+name: Ridership daily import
+
+on:
+  schedule:
+    # ~7:00 America/Chicago (UTC-5/-6); GitHub cron is UTC. Offset from headway job.
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force import even if SoDota rowsUpdatedAt is unchanged'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  import-ridership:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve APP_URL
+        id: config
+        env:
+          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_URL:-}" ]; then
+            echo "APP_URL is required: set repository variable or secret APP_URL" >&2
+            exit 1
+          fi
+          # Log host only — never echo the full URL if it ever embeds credentials.
+          python3 -c 'import os,urllib.parse; print("Using APP_URL host:", urllib.parse.urlparse(os.environ["APP_URL"]).netloc)'
+          echo "app_url=${APP_URL}" >> "${GITHUB_OUTPUT}"
+
+      - name: Restore SoDota import stamp
+        uses: actions/cache/restore@v4
+        with:
+          path: .ridership-dataset-stamp
+          key: ridership-sodata-${{ github.run_id }}
+          restore-keys: |
+            ridership-sodata-
+
+      - name: Import ridership + route segments
+        env:
+          APP_URL: ${{ steps.config.outputs.app_url }}
+          FORCE_IMPORT: ${{ inputs.force == true && 'true' || 'false' }}
+          STAMP_DIR: .ridership-dataset-stamp
+        run: |
+          set -euo pipefail
+          chmod +x scripts/import_ridership_sodata.sh
+          ./scripts/import_ridership_sodata.sh
+
+      - name: Save SoDota import stamp
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: .ridership-dataset-stamp
+          key: ridership-sodata-${{ hashFiles('.ridership-dataset-stamp/rows_updated_at') }}
