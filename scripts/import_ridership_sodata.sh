@@ -3,7 +3,7 @@
 # into the deployed API, then refresh route segments.
 #
 # Required env vars:
-# - APP_URL   Base API URL, e.g. https://naqhcbt69c.us-east-2.awsapprunner.com
+# - APP_URL   Base API URL, e.g. https://your-api-host.example.com
 #
 # Optional env vars:
 # - SODATA_DATASET_ID   SoDota view id (default: bynn-gwxy)
