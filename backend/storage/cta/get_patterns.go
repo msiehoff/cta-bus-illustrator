@@ -30,32 +30,57 @@ func (c *Client) GetRoutePattern(routeID string) (*GetRoutePatternResponse, erro
 	return &response, nil
 }
 
+func isPreferredMapDirection(rtdir string) bool {
+	switch business.NormalizeDirection(rtdir) {
+	case "Northbound", "Eastbound":
+		return true
+	default:
+		return false
+	}
+}
+
 // SegmentsFromPatternResponse maps a getpatterns JSON body to route segments.
-// It considers only Northbound/Eastbound ptr entries (skips Southbound/Westbound).
-// When multiple such patterns exist (alternate routings, e.g. State vs Halsted),
-// it picks the single pattern with the largest ln (CTA-reported path length), not
-// all of them: concatenating multiple polylines would connect the end of one path
-// to the start of another and draw long bogus diagonals on the map.
+// Prefer Northbound/Eastbound patterns (skip Southbound/Westbound when a preferred
+// direction exists) so the map draws one representative path. When CTA only publishes
+// Southbound/Westbound (or another direction) for a route — e.g. rt 10, 171 — fall back
+// to the longest available pattern so import-segments can succeed.
+// When multiple patterns exist in the chosen set (alternate routings), pick the single
+// pattern with the largest ln (CTA-reported path length), not all of them: concatenating
+// multiple polylines would connect the end of one path to the start of another and draw
+// long bogus diagonals on the map.
 func SegmentsFromPatternResponse(resp *GetRoutePatternResponse) ([]business.RouteSegment, error) {
 	if resp == nil || len(resp.BustimeResponse.Ptr) == 0 {
 		return nil, fmt.Errorf("no pattern directions in response")
 	}
 
-	bestIdx := -1
-	bestLen := -1.0
+	bestPreferredIdx := -1
+	bestPreferredLen := -1.0
+	bestAnyIdx := -1
+	bestAnyLen := -1.0
+	seen := make([]string, 0, len(resp.BustimeResponse.Ptr))
+
 	for i := range resp.BustimeResponse.Ptr {
 		d := resp.BustimeResponse.Ptr[i]
-		if d.Rtdir != "Northbound" && d.Rtdir != "Eastbound" {
+		seen = append(seen, d.Rtdir)
+		if d.Ln > bestAnyLen {
+			bestAnyLen = d.Ln
+			bestAnyIdx = i
+		}
+		if !isPreferredMapDirection(d.Rtdir) {
 			continue
 		}
-		if d.Ln > bestLen {
-			bestLen = d.Ln
-			bestIdx = i
+		if d.Ln > bestPreferredLen {
+			bestPreferredLen = d.Ln
+			bestPreferredIdx = i
 		}
 	}
 
+	bestIdx := bestPreferredIdx
 	if bestIdx < 0 {
-		return nil, fmt.Errorf("no northbound/eastbound pattern directions in response")
+		bestIdx = bestAnyIdx
+	}
+	if bestIdx < 0 {
+		return nil, fmt.Errorf("no usable pattern directions in response (got %q)", seen)
 	}
 
 	direction := resp.BustimeResponse.Ptr[bestIdx]
